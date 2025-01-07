@@ -108,24 +108,51 @@ const modelCache = {};
 
 let isProcessing = false;
 let isSessionActive = false;
+let client = null;
+let db = null;
 
-// Connect to MongoDB
-const uri = process.env.MONGODB_URI;
-const client = new MongoClient(uri, {
-    serverApi: {
-        version: ServerApiVersion.v1,
-        strict: true,
-        deprecationErrors: true,
+// Initialize MongoDB connection
+async function connectToMongoDB() {
+    try {
+        const uri = "mongodb+srv://animevoice:5bijez5BGK8kmsUe@cluster0.aquqj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+        client = new MongoClient(uri, {
+            serverApi: {
+                version: ServerApiVersion.v1,
+                strict: true,
+                deprecationErrors: true,
+            }
+        });
+        await client.connect();
+        db = client.db('anime-voice');
+        console.log('Connected to MongoDB');
+    } catch (error) {
+        console.error('Failed to connect to MongoDB:', error);
+        throw error;
+    }
+}
+
+// Connect to MongoDB before handling any requests
+router.use(async (req, res, next) => {
+    try {
+        if (!db) {
+            await connectToMongoDB();
+        }
+        next();
+    } catch (error) {
+        console.error('MongoDB connection error:', error);
+        res.status(500).json({ error: 'Database connection error' });
     }
 });
-const db = client.db(process.env.MONGODB_DB || 'anime-voice');
 
 // Function to start a new conversation session
 async function initializeNewSession(character, userId) {
+    if (!db) {
+        await connectToMongoDB();
+    }
+    
     let currentSessionId = Date.now().toString();
     let currentCharacter = character;
     
-    // Store conversation in MongoDB instead of file system
     await db.collection('conversations').insertOne({
         sessionId: currentSessionId,
         character: character,
@@ -137,31 +164,30 @@ async function initializeNewSession(character, userId) {
     return currentSessionId;
 }
 
+// Function to update conversation from call history
+async function updateConversationFromHistory(userId, character) {
+    if (!db) {
+        await connectToMongoDB();
+    }
+
+    const userData = await getFullUserData(userId);
+    if (!userData || !userData.callHistory) return;
+
+    const characterCalls = userData.callHistory
+        .filter(call => call.character === character)
+        .sort((a, b) => b.timestamp - a.timestamp);
+
+    if (characterCalls.length > 0 && currentSessionId) {
+        await db.collection('conversations').updateOne(
+            { sessionId: currentSessionId },
+            { $set: { messages: characterCalls } }
+        );
+    }
+}
+
 // Function to clean text of newlines and extra spaces
 function cleanText(text) {
     return text.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
-}
-
-// Function to update conversation from call history
-async function updateConversationFromHistory(userId, character) {
-    try {
-        const userData = await getFullUserData(userId);
-        if (!userData || !userData.callHistory) return;
-
-        // Get the most recent conversation with this character
-        const characterCalls = userData.callHistory
-            .filter(call => call.character === character)
-            .sort((a, b) => b.timestamp - a.timestamp);
-
-        if (characterCalls.length > 0) {
-            await db.collection('conversations').updateOne(
-                { sessionId: currentSessionId },
-                { $set: { messages: characterCalls } }
-            );
-        }
-    } catch (error) {
-        console.error('Error updating conversation history:', error);
-    }
 }
 
 // Process chat with AI and generate response
