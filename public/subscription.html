@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI Anime Voice - Subscription Plans</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #7C3AED;
+            --primary-light: #8B5CF6;
+            --dark: #1F2937;
+            --darker: #111827;
+            --light: #F3F4F6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            background: var(--darker);
+            color: var(--light);
+        }
+
+        .plan-card {
+            background: var(--dark);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .plan-card .content {
+            flex-grow: 1;
+        }
+
+        .plan-card .button-container {
+            margin-top: auto;
+        }
+
+        .plan-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .popular-badge {
+            background: var(--primary);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 4px;
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            font-size: 0.875rem;
+        }
+
+        .feature-list li {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .feature-list li::before {
+            content: '✓';
+            color: var(--primary-light);
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-light);
+        }
+
+        .account-section {
+            background: var(--dark);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .loading-container {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            transform: translateY(-50%);
+        }
+
+        .loading-text {
+            font-size: 1.125rem;
+            color: rgba(255, 255, 255, 0.9);
+            text-align: center;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s ease-in-out infinite;
+            position: absolute;
+            left: calc(50% - 20px);  
+            top: -60px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            -webkit-backdrop-filter: blur(4px);
+            backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+        }
+
+        .modal.show {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-content {
+            background: var(--dark);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 400px;
+            width: 100%;
+            position: relative;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+                        0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            transform: translateY(0);
+            transition: transform 0.3s ease;
+        }
+
+        .modal.show .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 1rem;
+        }
+
+        .modal-message {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9375rem;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+
+        .modal-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .modal-btn-cancel {
+            background: var(--primary);
+            color: white;
+            border: none;
+        }
+
+        .modal-btn-cancel:hover {
+            background: var(--primary-light);
+        }
+
+        .modal-btn-confirm {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .modal-btn-confirm:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .modal-btn-confirm.loading {
+            position: relative;
+            color: transparent;
+        }
+
+        .modal-btn-confirm.loading::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 50%;
+            left: 50%;
+            margin: -8px 0 0 -8px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: rgba(255, 255, 255, 0.8);
+            animation: button-spinner 0.6s linear infinite;
+        }
+
+        @keyframes button-spinner {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .modal-content {
+                margin: auto 16px;
+                padding: 20px;
+            }
+
+            #modalButtons {
+                flex-direction: column-reverse;
+                margin-top: 20px;
+            }
+
+            #modalButtons button {
+                width: 100%;
+                padding: 12px !important;
+                font-size: 1rem !important;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Message Modal -->
+    <div id="messageModal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-title" id="modalTitle"></h3>
+            <p class="modal-message" id="modalMessage"></p>
+            <div class="modal-buttons" id="modalButtons">
+                <!-- Buttons will be dynamically added here -->
+            </div>
+        </div>
+    </div>
+
+    <main class="max-w-7xl mx-auto">
+        <div id="plans-section" class="pt-16 pb-12 px-6 relative">
+            <button onclick="window.location.href='home.html'" class="text-gray-300 hover:text-white absolute top-6 left-6 flex items-center gap-2 text-sm">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+                <span>Back to Home</span>
+            </button>
+            <div class="text-center mb-12">
+                <h1 class="text-4xl font-bold text-white mb-4">Choose Your Plan</h1>
+                <div class="flex justify-center px-4">
+                    <p class="text-base sm:text-lg text-gray-300 whitespace-nowrap">Unlock the full potential of AI Anime Voice</p>
+                </div>
+            </div>
+            
+            <div class="grid md:grid-cols-3 gap-8">
+                <!-- Free Plan -->
+                <div class="plan-card rounded-2xl overflow-hidden relative">
+                    <div class="content px-6 py-8">
+                        <h2 class="text-2xl font-bold text-center mb-4">Free Plan</h2>
+                        <p class="text-4xl font-bold text-center mb-6">$0<span class="text-gray-400 text-lg">/month</span></p>
+                        <ul class="feature-list">
+                            <li>20 messages per day</li>
+                            <li>20 diamonds to start</li>
+                            <li>Basic response time</li>
+                        </ul>
+                    </div>
+                    <div class="button-container px-6 py-4 bg-[#1F2937]">
+                        <button id="free-plan-button" 
+                            class="w-full py-3 px-4 rounded-lg font-medium text-white bg-gray-600 cursor-not-allowed">
+                            Free Plan
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Premium Plan -->
+                <div class="plan-card rounded-2xl overflow-hidden relative">
+                    <div class="absolute top-0 right-0 transform translate-x-[3px] -translate-y-[3px]">
+                        <div class="bg-[#8B5CF6] text-white text-xs sm:text-sm font-medium px-3 py-1 rounded-bl-lg uppercase tracking-wide">
+                            Most Popular
+                        </div>
+                    </div>
+                    <div class="content px-6 py-8">
+                        <h2 class="text-2xl font-bold text-center mb-4">Premium Plan</h2>
+                        <p class="text-4xl font-bold text-center mb-6">$7.88<span class="text-gray-400 text-lg">/month</span></p>
+                        <ul class="feature-list">
+                            <li>150 messages per day</li>
+                            <li>100 diamonds monthly</li>
+                            <li>Fast response time</li>
+                        </ul>
+                    </div>
+                    <div class="button-container px-6 py-4 bg-[#1F2937]">
+                        <button id="premium-plan-button" 
+                            class="btn-primary w-full py-3 px-4 rounded-lg font-medium"
+                            onclick="handleSubscribe('ai-anime-voice-premium')">
+                            Subscribe Now
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Ultimate Plan -->
+                <div class="plan-card rounded-2xl overflow-hidden relative">
+                    <div class="content px-6 py-8">
+                        <h2 class="text-2xl font-bold text-center mb-4">Ultimate Plan</h2>
+                        <p class="text-4xl font-bold text-center mb-6">$14.88<span class="text-gray-400 text-lg">/month</span></p>
+                        <ul class="feature-list">
+                            <li>300 messages per day</li>
+                            <li>All characters unlocked</li>
+                            <li>Fastest response time</li>
+                        </ul>
+                    </div>
+                    <div class="button-container px-6 py-4 bg-[#1F2937]">
+                        <button id="ultimate-plan-button" 
+                            class="btn-primary w-full py-3 px-4 rounded-lg font-medium"
+                            onclick="handleSubscribe('ai-anime-voice-ultimate')">
+                            Subscribe Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Embedded Checkout Container - Hidden by default -->
+        <div id="checkout-section" class="hidden">
+            <div class="flex justify-start hidden px-4 mt-4" id="back-button-container">
+                <button onclick="hideCheckout()" class="text-gray-400 hover:text-white">
+                    ← Back to Plans
+                </button>
+            </div>
+            <div id="checkout-loading" class="loading-container hidden mt-8">
+                <p class="loading-text">Preparing your checkout...</p>
+                <div class="spinner"></div>
+            </div>
+            <div id="fsc-embedded-checkout-container" class="mt-8"></div>
+        </div>
+
+        <!-- Account Section -->
+        <div id="account-section" class="max-w-xl mx-auto py-8 px-4 hidden">
+            <div class="account-section rounded-2xl overflow-hidden">
+                <div class="px-6 py-8">
+                    <h2 class="text-2xl font-bold mb-6">Account Details</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <p class="text-sm text-gray-400">Email</p>
+                            <p id="user-email" class="text-lg font-medium">Loading...</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-400">User ID</p>
+                            <p id="user-id" class="text-lg font-medium">Loading...</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-400">Current Plan</p>
+                            <p id="current-plan" class="text-lg font-medium">Loading...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Cancel Subscription Button -->
+                    <div class="mt-8 space-x-4">
+                        <button 
+                            id="cancel-subscription-button"
+                            class="text-red-500 hover:text-red-400"
+                            onclick="cancelSubscription()">
+                            Cancel Subscription
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            let userData = null;
+            let lastOrderId = null;
+            let ws = null;
+            let fsInitialized = false;
+
+            // Connect WebSocket
+            function connectWebSocket() {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+                
+                ws.onopen = () => {
+                    console.log('WebSocket connected');
+                };
+                
+                ws.onmessage = (event) => {
+                    try {
+                        const message = JSON.parse(event.data);
+                        console.log('WebSocket message received:', message);
+                        
+                        if (message.type === 'subscription_updated') {
+                            console.log('Subscription update received via WebSocket');
+                            // Update userData with new plan data
+                            userData = message.data;
+                            // Reset buttons and update UI
+                            resetPlanButtons();
+                            updateUI();
+                            // Show success message
+                            alert('Subscription updated successfully! You are now on the ' + userData.plan + ' plan.');
+                        }
+                    } catch (error) {
+                        console.error('Error processing WebSocket message:', error);
+                    }
+                };
+                
+                ws.onclose = () => {
+                    console.log('WebSocket disconnected, attempting to reconnect...');
+                    setTimeout(connectWebSocket, 3000);
+                };
+                
+                ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                };
+            }
+
+            // Connect WebSocket when page loads
+            connectWebSocket();
+
+            // Initialize FastSpring
+            async function initializeFastSpring() {
+                const script = document.getElementById('fsc-api');
+                if (script) {
+                    script.remove();
+                }
+                
+                fsInitialized = false; // Reset initialization flag
+                
+                return new Promise((resolve) => {
+                    const newScript = document.createElement('script');
+                    newScript.id = 'fsc-api';
+                    newScript.src = 'https://sbl.onfastspring.com/sbl/1.0.1/fastspring-builder.min.js';
+                    newScript.setAttribute('data-storefront', 'aianimevoice.test.onfastspring.com/embedded-test');
+                    newScript.setAttribute('data-popup-webhook', 'true');
+                    newScript.setAttribute('data-popup-closed', 'handlePopupClosed');
+                    newScript.setAttribute('data-access-key', 'M6QKOPN0QPGW8EFDMJLG_g');
+                    newScript.setAttribute('data-continuous', 'true');
+                    
+                    newScript.onload = () => {
+                        fsInitialized = true;
+                        resolve();
+                    };
+                    
+                    document.head.appendChild(newScript);
+                });
+            }
+
+            // Initialize checkout with options
+            async function initializeCheckout(plan) {
+                const options = {
+                    'access_key': 'M6QKOPN0QPGW8EFDMJLG_g',
+                    'tags': {
+                        'userId': userData.userId,
+                        'email': userData.email
+                    },
+                    'recipient': {
+                        'email': userData.email
+                    },
+                    'storefront': 'aianimevoice.test.onfastspring.com/embedded-test',
+                    'display': {
+                        'containerId': 'fsc-embedded-checkout-container'
+                    }
+                };
+
+                fastspring.builder.secure(options);
+                fastspring.builder.add(plan, 1);
+                
+                // Return a promise that resolves when checkout is ready
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        fastspring.builder.checkout();
+                        resolve();
+                    }, 2000); // Initialize checkout at 2 seconds
+                });
+            }
+
+            // Handle subscription button click
+            async function handleSubscribe(plan) {
+                if (!userData) {
+                    alert('Please log in first');
+                    return;
+                }
+                
+                try {
+                    // Show checkout section and hide plans and account details
+                    document.getElementById('plans-section').classList.add('hidden');
+                    document.getElementById('account-section').classList.add('hidden');
+                    document.getElementById('checkout-section').classList.remove('hidden');
+                    document.getElementById('back-button-container').classList.add('hidden');
+                    
+                    // Show loading, hide checkout container
+                    document.getElementById('checkout-loading').classList.remove('hidden');
+                    document.getElementById('fsc-embedded-checkout-container').classList.add('hidden');
+                    
+                    // Reset the checkout container
+                    const container = document.getElementById('fsc-embedded-checkout-container');
+                    container.innerHTML = '';
+                    
+                    // Always reinitialize FastSpring
+                    await initializeFastSpring();
+
+                    // Initialize checkout in the background while showing loader
+                    await initializeCheckout(plan);
+
+                    // Show checkout after fixed delay
+                    setTimeout(() => {
+                        document.getElementById('checkout-loading').classList.add('hidden');
+                        document.getElementById('fsc-embedded-checkout-container').classList.remove('hidden');
+                        document.getElementById('back-button-container').classList.remove('hidden');
+                    }, 3000); // Reduced to 3 seconds
+                } catch (error) {
+                    console.error('Checkout error:', error);
+                    alert('There was an error initializing the checkout. Please try again.');
+                    hideCheckout();
+                }
+            }
+
+            // Hide checkout and show plans
+            function hideCheckout() {
+                document.getElementById('checkout-section').classList.add('hidden');
+                document.getElementById('plans-section').classList.remove('hidden');
+                document.getElementById('account-section').classList.remove('hidden');
+                document.getElementById('checkout-loading').classList.remove('hidden');
+                document.getElementById('fsc-embedded-checkout-container').classList.add('hidden');
+                
+                // Clean up the checkout
+                const container = document.getElementById('fsc-embedded-checkout-container');
+                container.innerHTML = '';
+                
+                if (typeof fastspring !== 'undefined') {
+                    try {
+                        fastspring.builder.reset();
+                        fastspring.builder.clean();
+                    } catch (error) {
+                        console.error('Error cleaning up checkout:', error);
+                    }
+                }
+                
+                // Reset FastSpring initialization flag
+                fsInitialized = false;
+
+                // Check auth status to update the plan information
+                checkAuth();
+            }
+
+            // Handle popup closed
+            async function handlePopupClosed(data) {
+                if (data && data.id) {
+                    lastOrderId = data.id;
+                    console.log('FastSpring popup closed with order ID:', data.id);
+                    // The WebSocket will handle the update when the order is completed
+                }
+                hideCheckout();
+            }
+
+            // Check order status
+            async function checkOrderStatus(orderId) {
+                try {
+                    console.log('Checking order status:', orderId);
+                    const response = await fetch('/api/subscription/check-order', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ orderId })
+                    });
+
+                    const data = await response.json();
+                    console.log('Order status response:', data);
+                    
+                    if (data.success) {
+                        console.log('Order completed successfully');
+                        location.reload();
+                    } else {
+                        console.log('Order not completed yet');
+                    }
+                } catch (error) {
+                    console.error('Error checking order:', error);
+                }
+            }
+
+            // Check authentication
+            async function checkAuth() {
+                try {
+                    const response = await fetch('/api/subscription/status');
+                    const data = await response.json();
+                    
+                    if (data.isLoggedIn) {
+                        userData = {
+                            userId: data.userId,
+                            email: data.email,
+                            plan: data.plan,
+                            subscriptionStatus: data.subscriptionStatus
+                        };
+                        updateUI();
+                    }
+                } catch (error) {
+                    console.error('Auth check error:', error);
+                }
+            }
+
+            // Reset all plan buttons to their default state
+            function resetPlanButtons() {
+                const plans = ['free', 'premium', 'ultimate'];
+                plans.forEach(plan => {
+                    const button = document.getElementById(`${plan}-plan-button`);
+                    if (button) {
+                        button.textContent = 'Subscribe Now';
+                        button.disabled = false;
+                        button.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                        button.classList.add('btn-primary');
+                        if (plan === 'free') {
+                            button.textContent = 'Free Plan';
+                        }
+                    }
+                });
+            }
+
+            // Update UI based on current plan
+            function updateUI() {
+                if (!userData) return;
+
+                console.log('Updating UI with userData:', userData);
+
+                // Update account section
+                document.getElementById('user-email').textContent = userData.email;
+                document.getElementById('user-id').textContent = userData.userId;
+                document.getElementById('current-plan').textContent = `${userData.plan} (${userData.subscriptionStatus})`;
+                document.getElementById('account-section').classList.remove('hidden');
+
+                // Show/hide cancel subscription button based on plan and status
+                const cancelButton = document.getElementById('cancel-subscription-button');
+                
+                if (cancelButton) {
+                    if (userData.plan === 'free' || userData.subscriptionStatus === 'cancelled' || userData.subscriptionStatus === 'deactivated') {
+                        cancelButton.classList.add('hidden');
+                    } else {
+                        cancelButton.classList.remove('hidden');
+                    }
+                }
+
+                // First reset all buttons to their default state
+                const plans = ['free', 'premium', 'ultimate'];
+                plans.forEach(plan => {
+                    const button = document.getElementById(`${plan}-plan-button`);
+                    if (button) {
+                        // Reset button state
+                        button.disabled = false;
+                        button.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                        button.classList.add('btn-primary');
+                        
+                        if (plan === userData.plan) {
+                            // Current plan button
+                            button.textContent = 'Current Plan';
+                            button.disabled = true;
+                            button.classList.remove('btn-primary');
+                            button.classList.add('bg-gray-400', 'cursor-not-allowed');
+                        } else {
+                            // Other plan buttons
+                            button.textContent = plan === 'free' ? 'Free Plan' : 'Subscribe Now';
+                            if (plan === 'free') {
+                                button.classList.remove('btn-primary');
+                                button.classList.add('bg-gray-600');
+                            }
+                        }
+                    }
+                });
+
+                // Show the plans section
+                document.getElementById('plans-section').classList.remove('hidden');
+            }
+
+            // Show message function
+            function showMessage(title, message, buttons = null) {
+                const modal = document.getElementById('messageModal');
+                const modalTitle = document.getElementById('modalTitle');
+                const modalMessage = document.getElementById('modalMessage');
+                const modalButtons = document.getElementById('modalButtons');
+
+                modalTitle.textContent = title;
+                modalMessage.textContent = message;
+                modalButtons.innerHTML = '';
+
+                if (buttons) {
+                    buttons.forEach(button => {
+                        const btn = document.createElement('button');
+                        btn.className = `modal-btn ${button.type === 'cancel' ? 'modal-btn-cancel' : 'modal-btn-confirm'}`;
+                        btn.textContent = button.text;
+                        btn.onclick = () => {
+                            if (button.action) {
+                                button.action(btn);
+                            }
+                            if (!btn.classList.contains('loading')) {
+                                closeModal();
+                            }
+                        };
+                        modalButtons.appendChild(btn);
+                    });
+                } else {
+                    const okButton = document.createElement('button');
+                    okButton.className = 'modal-btn modal-btn-confirm';
+                    okButton.textContent = 'OK';
+                    okButton.onclick = closeModal;
+                    modalButtons.appendChild(okButton);
+                }
+
+                modal.classList.add('show');
+            }
+
+            // Close modal function
+            function closeModal() {
+                const modal = document.getElementById('messageModal');
+                modal.classList.remove('show');
+                // Restore body scroll
+                document.body.style.overflow = '';
+            }
+
+            // Close modal when clicking outside
+            document.getElementById('messageModal').addEventListener('click', (e) => {
+                if (e.target.id === 'messageModal') {
+                    closeModal();
+                }
+            });
+
+            // Cancel subscription function
+            async function cancelSubscription() {
+                showMessage(
+                    'Cancel Subscription',
+                    'Are you sure you want to cancel your subscription?',
+                    [
+                        {
+                            text: 'Cancel',
+                            type: 'cancel',
+                            action: () => {}
+                        },
+                        {
+                            text: 'Yes',
+                            type: 'confirm',
+                            action: async (button) => {
+                                try {
+                                    button.classList.add('loading');
+                                    const response = await fetch('/api/subscription/cancel', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json'
+                                        }
+                                    });
+
+                                    if (!response.ok) {
+                                        throw new Error('Failed to cancel subscription');
+                                    }
+
+                                    const result = await response.json();
+                                    closeModal();
+                                    showMessage(
+                                        'Subscription Cancelled',
+                                        'Your subscription has been cancelled successfully.',
+                                        [{
+                                            text: 'OK',
+                                            type: 'confirm',
+                                            action: () => {
+                                                window.location.reload();
+                                            }
+                                        }]
+                                    );
+                                } catch (error) {
+                                    console.error('Error cancelling subscription:', error);
+                                    closeModal();
+                                    showMessage(
+                                        'Error',
+                                        'Failed to cancel subscription. Please try again later.'
+                                    );
+                                }
+                            }
+                        }
+                    ]
+                );
+            }
+
+            // Initialize page
+            window.addEventListener('load', checkAuth);
+        </script>
+    </main>
+</body>
+</html>

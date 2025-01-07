@@ -1,0 +1,16 @@
+{
+  "requests": [
+    {
+      "characterName": "gon",
+      "email": "derderprince10@gmail.com",
+      "message": "test",
+      "timestamp": "2024-12-12T11:22:43.491Z"
+    },
+    {
+      "characterName": "test",
+      "email": "elnidobeachcamp@gmail.com",
+      "message": "",
+      "timestamp": "2024-12-13T08:40:13.123Z"
+    }
+  ]
+}

@@ -1,0 +1,1680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Shinobu Model</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <script>
+        // Preload background image
+        window.addEventListener('load', () => {
+            const backgroundImage = new Image();
+            backgroundImage.src = 'background/shinobu.png';
+            window.isBackgroundLoaded = false;
+
+            backgroundImage.onload = function() {
+                window.isBackgroundLoaded = true;
+            };
+        });
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: #000;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        body.call-connected {
+            background: #000 url('background/shinobu.png') no-repeat;
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            width: 100%;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+
+        @media screen and (max-width: 768px) {
+            body.call-connected {
+                background-position: center;
+            }
+        }
+
+        @media screen and (orientation: portrait) {
+            body.call-connected {
+                background-position: center;
+            }
+        }
+
+        @media screen and (orientation: landscape) {
+            body.call-connected {
+                background-position: center;
+            }
+        }
+
+        .container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .interface-container {
+            position: relative;
+            width: 400px;
+            height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            transform: translateY(10px);  /* Changed to positive 10px to move down */
+        }
+
+        .audio-visualizer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .audio-visualizer.active {
+            opacity: 1;
+        }
+
+        .audio-bar {
+            width: 4px;
+            height: 40px;
+            background: #0ff;
+            border-radius: 2px;
+            transform-origin: bottom;
+            animation: none;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+        }
+
+        @keyframes barAnimation {
+            0% { transform: scaleY(0.3); }
+            50% { transform: scaleY(1); }
+            100% { transform: scaleY(0.3); }
+        }
+
+        .control-button {
+            position: absolute;
+            padding: 20px;
+            width: 180px;
+            height: 180px;
+            background: rgba(0,255,255,0.05);
+            border: 2px solid #0ff;
+            color: #0ff;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1em;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .control-button:hover {
+            background: rgba(0,255,255,0.1);
+            box-shadow: 0 0 30px rgba(0,255,255,0.3);
+            transform: scale(1.05);
+        }
+
+        .control-button:hover::after {
+            opacity: 1;
+            animation: rotate 2s linear infinite;
+        }
+
+        .control-button.recording {
+            background: rgba(0,0,0,0.1);
+            border-color: #f55;
+            color: #f55;
+            box-shadow: 0 0 30px rgba(0,0,0,0.3);
+        }
+
+        .control-button.recording::after {
+            background: conic-gradient(
+                from 0deg,
+                transparent 0deg,
+                #f55 90deg,
+                rgba(255, 85, 85, 0.3) 180deg,
+                transparent 360deg
+            );
+        }
+
+        .control-button.hidden {
+            transform: scale(0);
+            opacity: 0;
+        }
+
+        .control-button.active {
+            transform: scale(0.95);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
+            background: rgba(0, 255, 255, 0.2);
+        }
+
+        .status {
+            position: absolute;
+            bottom: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.9em;
+            color: rgba(255,255,255,0.9);
+            background: rgba(0,255,255,0.1);
+            padding: 8px 20px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(0,255,255,0.2);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0;
+        }
+
+        .status.visible {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+
+        .processing-container {
+            position: absolute;
+            top: 17%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            opacity: 0;
+            transition: all 0.3s ease;
+            transform: translateY(-20px);
+        }
+
+        .processing-container.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .processing-text {
+            font-size: 1.2em;
+            color: #0ff;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(0,255,255,0.5);
+        }
+
+        .processing-line {
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #0ff, transparent);
+        }
+
+        .button-text {
+            font-size: 0.9em;
+            opacity: 0.9;
+            white-space: nowrap;
+        }
+
+        .button-subtext {
+            position: absolute;
+            bottom: 35%;
+            font-size: 0.7em;
+            opacity: 0.7;
+            text-transform: none;
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+
+        /* Add responsive styles */
+        @media (max-width: 768px) {
+            .interface-container {
+                width: 100%;
+                height: 100vh;
+            }
+
+            .control-button {
+                width: 180px;
+                height: 180px;
+                font-size: 0.9em;
+                padding: 15px;
+            }
+
+            .button-text {
+                font-size: 0.9em;
+            }
+
+            .button-subtext {
+                font-size: 0.65em;
+                bottom: 35%;
+            }
+        }
+
+        /* Add styles for smaller phones */
+        @media (max-width: 380px) {
+            .control-button {
+                width: 160px;
+                height: 160px;
+                font-size: 0.85em;
+                padding: 12px;
+            }
+
+            .button-text {
+                font-size: 0.85em;
+            }
+
+            .button-subtext {
+                font-size: 0.6em;
+                bottom: 32%;
+            }
+        }
+
+        /* Desktop-specific styles */
+        @media (min-width: 1024px) {
+            .interface-container {
+                width: 600px;
+                height: 600px;
+            }
+
+            .control-button {
+                width: 200px;
+                height: 200px;
+                font-size: 1.1em;
+            }
+
+            .button-text {
+                font-size: 1em;
+            }
+
+            .button-subtext {
+                font-size: 0.75em;
+                bottom: 35%;
+            }
+
+            .processing-container {
+                top: 20%;
+            }
+
+            .processing-text {
+                font-size: 1.4em;
+            }
+
+            .processing-line {
+                width: 200px;
+            }
+
+            .status {
+                bottom: 18%;
+                font-size: 1em;
+                padding: 12px 30px;
+            }
+        }
+
+        /* Large desktop screens */
+        @media (min-width: 1440px) {
+            .interface-container {
+                width: 800px;
+                height: 800px;
+            }
+
+            .control-button {
+                width: 220px;
+                height: 220px;
+                font-size: 1.2em;
+            }
+
+            .button-text {
+                font-size: 1.1em;
+            }
+
+            .button-subtext {
+                font-size: 0.8em;
+                bottom: 35%;
+            }
+
+            .processing-text {
+                font-size: 1.6em;
+            }
+
+            .processing-line {
+                width: 250px;
+            }
+        }
+
+        /* Ultra-wide screens */
+        @media (min-width: 2560px) {
+            .interface-container {
+                width: 1000px;
+                height: 1000px;
+            }
+
+            .control-button {
+                width: 250px;
+                height: 250px;
+                font-size: 1.3em;
+            }
+
+            .processing-text {
+                font-size: 1.8em;
+            }
+
+            .processing-line {
+                width: 300px;
+            }
+        }
+
+        /* Adjust animation for larger screens */
+        @media (min-width: 1024px) {
+            @keyframes pulse {
+                0% { transform: scale(1); opacity: 0.5; }
+                50% { transform: scale(1.05); opacity: 0.2; }
+                100% { transform: scale(1); opacity: 0.5; }
+            }
+
+            @keyframes buttonPulse {
+                0% { transform: scale(1); opacity: 0.8; }
+                100% { transform: scale(1.15); opacity: 0; }
+            }
+
+            .control-button:hover {
+                transform: scale(1.02);
+            }
+        }
+
+        .control-button::after {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            padding: 4px;
+            background: conic-gradient(
+                from 0deg,
+                transparent 0deg,
+                #0ff 90deg,
+                rgba(0, 255, 255, 0.3) 180deg,
+                transparent 360deg
+            );
+            -webkit-mask: 
+                linear-gradient(#fff 0 0) content-box, 
+                linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            animation: rotate 4s linear infinite;
+            opacity: 0.9;
+            z-index: -1;
+        }
+
+        @keyframes rotate {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .control-button.processing {
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s ease;
+        }
+
+        .audio-visualizer.ai-speaking {
+            transform: scale(1.1);
+        }
+
+        .control-button.recording .button-text,
+        .control-button.recording .button-subtext {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .control-button.recording::before {
+            content: '';
+            position: absolute;
+            width: 40%;
+            height: 40%;
+            background: rgba(255, 85, 85, 0.2);
+            border-radius: 50%;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0% { 
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(255, 85, 85, 0.4);
+            }
+            70% { 
+                transform: scale(1);
+                box-shadow: 0 0 0 10px rgba(255, 85, 85, 0);
+            }
+            100% { 
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(255, 85, 85, 0);
+            }
+        }
+
+        .control-button.stop-button {
+            background: rgba(255, 0, 0, 0.1);
+            border-color: #ff4444;
+            color: #ff4444;
+        }
+
+        .control-button.stop-button:hover {
+            background: rgba(255, 0, 0, 0.2);
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.3);
+        }
+
+        .control-button.stop-button::after {
+            background: conic-gradient(
+                from 0deg,
+                transparent 0deg,
+                #ff4444 90deg,
+                rgba(255, 68, 68, 0.3) 180deg,
+                transparent 360deg
+            );
+        }
+
+        .small-stop-button {
+            position: fixed;
+            top: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            background: rgba(255, 68, 68, 0.1);
+            border: 2px solid #f44;
+            color: #f44;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1em;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+        }
+
+        .small-stop-button:hover {
+            background: rgba(255, 85, 85, 0.2);
+            box-shadow: 0 0 15px rgba(255, 85, 85, 0.3);
+        }
+
+        .small-stop-button.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(-50%) scale(0.9);
+        }
+
+        @media screen and (max-width: 768px) {
+            .small-stop-button {
+                padding: 6px 16px;
+                font-size: 13px;
+            }
+        }
+
+        .calling-overlay {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 10;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .calling-overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .naruto-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 2px solid #0ff;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+        }
+
+        .naruto-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .naruto-avatar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.2) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .calling-container {
+            text-align: center;
+            position: relative;
+            margin: 20px 0;
+        }
+
+        .calling-text {
+            color: #0ff;
+            font-size: 1.5em;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+            display: inline-block;
+        }
+
+        .loading-dots {
+            position: absolute;
+            display: inline-block;
+            width: 30px;
+            margin-left: 5px;
+            text-align: left;
+            bottom: 0;
+            color: #0ff;
+            font-size: 1.5em;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+            font-family: 'Rajdhani', sans-serif;
+        }
+
+        .calling-icon {
+            margin-top: 10px;
+            position: relative;
+        }
+
+        .calling-icon::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            background: rgba(0, 255, 255, 0.1);
+            border-radius: 50%;
+            z-index: -1;
+        }
+
+        .calling-icon svg {
+            filter: drop-shadow(0 0 5px rgba(0, 255, 255, 0.5));
+        }
+
+        @keyframes dotPulse {
+            0% {
+                transform: scale(0.3);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1.5);
+                opacity: 0;
+            }
+        }
+
+        .ring {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 2px solid #0ff;
+            border-radius: 50%;
+            animation: dotPulse 1.5s linear infinite;
+        }
+
+        .ring:nth-child(2) {
+            animation-delay: 0.5s;
+        }
+
+        .ring:nth-child(3) {
+            animation-delay: 1s;
+        }
+
+        .back-button {
+            position: fixed;
+            top: 30px;
+            left: 30px;
+            z-index: 100;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Mobile optimization */
+        @media (max-width: 768px) {
+            .back-button {
+                top: 20px;
+                left: 20px;
+                padding: 10px;
+            }
+        }
+
+        /* Small phones */
+        @media (max-width: 380px) {
+            .back-button {
+                top: 15px;
+                left: 15px;
+                padding: 8px;
+            }
+        }
+
+        /* Desktop enhancements */
+        @media (min-width: 1024px) {
+            .back-button {
+                top: 40px;
+                left: 40px;
+                padding: 15px;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .mic-button-container {
+            position: absolute;
+            bottom: 8%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            transform: translateY(-40px);
+        }
+
+        .mic-text {
+            position: absolute;
+            bottom: calc(100% + 12px);
+            left: 50%;
+            transform: translateX(-50%);
+            color: #0ff;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            text-align: center;
+            pointer-events: none;
+            white-space: nowrap;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 6px 12px;
+            border-radius: 15px;
+            backdrop-filter: blur(3px);
+            border: 1px solid rgba(0, 255, 255, 0.15);
+        }
+
+        .mic-text.visible {
+            opacity: 1;
+        }
+
+        .control-button.mic-button {
+            width: 80px;
+            height: 80px;
+            position: relative;
+            background: #00a7ff;
+            border: 2px solid #0ff;
+            color: #0ff;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 
+                inset 0 0 20px rgba(0, 255, 255, 0.5),
+                0 0 20px rgba(0, 255, 255, 0.3);
+            transform: translate3d(0, 0, 0);
+            -webkit-transform: translate3d(0, 0, 0);
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            perspective: 1000;
+            -webkit-perspective: 1000;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            will-change: transform, background-color, box-shadow;
+            transition: transform 80ms ease-out, 
+                      background-color 80ms ease-out,
+                      box-shadow 80ms ease-out;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        @media (pointer: fine) {
+            .control-button.mic-button:hover {
+                background: #00b8ff;
+                transform: translate3d(0, 0, 0) scale(1.05);
+                box-shadow: 
+                    inset 0 0 30px rgba(0, 255, 255, 0.6),
+                    0 0 30px rgba(0, 255, 255, 0.4);
+            }
+        }
+
+        .control-button.mic-button.active {
+            background: #0095ff;
+            transform: translate3d(0, 0, 0) scale(0.95);
+            box-shadow: 
+                inset 0 0 40px rgba(0, 255, 255, 0.7),
+                0 0 25px rgba(0, 255, 255, 0.5);
+        }
+
+        .control-button.mic-button::after {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 50%;
+            padding: 2px;
+            background: conic-gradient(
+                from 0deg,
+                transparent 0deg,
+                #0ff 90deg,
+                rgba(0, 255, 255, 0.3) 180deg,
+                transparent 360deg
+            );
+            -webkit-mask: 
+                linear-gradient(#fff 0 0) content-box, 
+                linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            animation: rotate 4s linear infinite;
+            opacity: 0.9;
+        }
+
+        .button-text, .button-subtext {
+            transition: opacity 0.3s ease;
+        }
+
+        .control-button.mic-button[style*="transparent"] .button-text,
+        .control-button.mic-button[style*="transparent"] .button-subtext {
+            opacity: 0;
+        }
+
+        /* Add responsive adjustments for smaller screens */
+        @media (max-width: 380px) {
+            .mic-text {
+                font-size: 0.8em;
+                padding: 5px 10px;
+            }
+        }
+
+        .control-button.mic-button.holding {
+            transform: scale(0.95);
+            transition: transform 0.1s ease;
+        }
+
+        .stop-text {
+            position: absolute;
+            bottom: calc(100% + 25px);
+            left: 50%;
+            transform: translateX(-50%);
+            color: #ff4444;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            text-align: center;
+            pointer-events: auto;
+            white-space: nowrap;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 16px;
+            border-radius: 15px;
+            backdrop-filter: blur(3px);
+            border: 1px solid rgba(255, 68, 68, 0.15);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stop-text.visible {
+            opacity: 1;
+        }
+
+        .stop-text svg {
+            width: 16px;
+            height: 16px;
+            stroke: #ff4444;
+            stroke-width: 2.5;
+        }
+
+        .stop-text:hover {
+            background: rgba(0, 0, 0, 0.6);
+            border-color: rgba(255, 68, 68, 0.3);
+            transform: translateX(-50%) scale(1.05);
+        }
+
+        @media (max-width: 380px) {
+            .stop-text {
+                font-size: 0.85em;
+                padding: 6px 14px;
+            }
+            .stop-text svg {
+                width: 14px;
+                height: 14px;
+            }
+        }
+
+        .loading-dots::after {
+            content: '';
+            animation: loading 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes loading {
+            0% { content: ''; }
+            25% { content: '.'; }
+            50% { content: '..'; }
+            75% { content: '...'; }
+            100% { content: ''; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="home.html" class="back-button" id="backButton">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="#0ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </a>
+        <div class="interface-container">
+            <div class="calling-overlay hidden" id="callingOverlay">
+                <div class="naruto-avatar">
+                    <img src="anime images/shinobu.png" alt="Shinobu">
+                </div>
+                <div class="calling-container">
+                    <div class="calling-text">Calling Shinobu</div>
+                    <span class="loading-dots"></span>
+                </div>
+                <div class="calling-icon">
+                    <svg width="35" height="35" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" stroke="#0ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </div>
+            </div>
+            <div class="processing-container" id="processingContainer">
+                <div class="processing-text" id="processingText"></div>
+                <div class="processing-line"></div>
+            </div>
+            <button class="control-button" id="startButton">
+                Call Shinobu
+                <span class="button-subtext">Click to call</span>
+            </button>
+            <div class="mic-button-container">
+                <div class="mic-text" id="micText">Hold to Talk</div>
+                <button class="control-button mic-button hidden" id="micButton">
+                    <div class="audio-visualizer" id="audioVisualizer">
+                        <div class="audio-bar"></div>
+                        <div class="audio-bar"></div>
+                        <div class="audio-bar"></div>
+                        <div class="audio-bar"></div>
+                        <div class="audio-bar"></div>
+                    </div>
+                </button>
+                <div class="stop-text" id="stopText">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 6L6 18M6 6L18 18" />
+                    </svg>
+                </div>
+            </div>
+            <button class="small-stop-button hidden" id="stopButton">
+                End Call
+            </button>
+            <div class="status" id="status"></div>
+        </div>
+    </div>
+
+    <script>
+        const startButton = document.getElementById('startButton');
+        const micButton = document.getElementById('micButton');
+        const audioVisualizer = document.getElementById('audioVisualizer');
+        const processingContainer = document.getElementById('processingContainer');
+        const callingOverlay = document.getElementById('callingOverlay');
+        const backButton = document.getElementById('backButton');
+        const stopButton = document.getElementById('stopButton');
+        const status = document.getElementById('status'); // Fixing the status element reference
+        const micText = document.getElementById('micText');
+
+        // Initialize variables for recording state
+        let isRecording = false;
+        let isSpeaking = false;
+        let micStream = null;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        
+        // Reset recording state
+        function resetRecordingState() {
+            isRecording = false;
+            micButton.classList.remove('holding');
+        }
+
+        // Update the speaking state handler
+        function updateSpeakingState(speaking) {
+            isSpeaking = speaking;
+            if (speaking) {
+                micButton.style.pointerEvents = 'none';
+                micButton.style.opacity = '0.5';
+                resetRecordingState();
+            } else {
+                micButton.style.pointerEvents = 'auto';
+                micButton.style.opacity = '1';
+                stopText.classList.remove('visible');
+            }
+        }
+
+        // Start recording function
+        async function startRecording() {
+            if (!canStartRecording()) return;
+            
+            try {
+                // Always create a new stream
+                if (micStream) {
+                    micStream.getTracks().forEach(track => {
+                        track.enabled = false;
+                        track.stop();
+                    });
+                }
+                micStream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true,
+                        channelCount: 1,
+                        sampleRate: 16000
+                    } 
+                });
+                
+                mediaRecorder = new MediaRecorder(micStream, {
+                    mimeType: 'audio/webm;codecs=opus',
+                    bitsPerSecond: 32000  // Lower bitrate for better handling
+                });
+
+                // Configure chunk interval
+                const CHUNK_INTERVAL = 3000; // 3 seconds
+                mediaRecorder.start(CHUNK_INTERVAL);
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = async () => {
+                    // Stop microphone immediately when recording stops
+                    if (micStream) {
+                        micStream.getTracks().forEach(track => {
+                            track.enabled = false;
+                            track.stop();
+                        });
+                        micStream = null;
+                    }
+                    mediaRecorder = null;
+
+                    if (audioChunks.length === 0) {
+                        updateProcessingText('No audio recorded');
+                        updateSpeakingState(false);
+                        return;
+                    }
+
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    audioChunks = [];
+
+                    // Check file size
+                    if (audioBlob.size > 25 * 1024 * 1024) { // 25MB limit
+                        updateProcessingText('Recording too long. Please try a shorter message.');
+                        updateSpeakingState(false);
+                        return;
+                    }
+
+                    const reader = new FileReader();
+                    reader.onloadend = async () => {
+                        const base64Audio = reader.result.split(',')[1];
+                        try {
+                            await processAudioToText(base64Audio);
+                        } catch (error) {
+                            console.error('Error processing audio:', error);
+                            updateProcessingText('Error processing audio');
+                            updateSpeakingState(false);
+                        }
+                    };
+                    reader.readAsDataURL(audioBlob);
+                };
+
+                audioChunks = [];
+                isRecording = true;
+                updateAudioBars(true);
+                micButton.classList.add('active');
+                micText.textContent = 'Release to Send';
+                updateProcessingText("Listening...");
+            } catch (error) {
+                console.error('Error starting recording:', error);
+                updateProcessingText('Microphone access denied');
+                resetRecordingState();
+                // Clean up if there's an error
+                if (micStream) {
+                    micStream.getTracks().forEach(track => {
+                        track.enabled = false; // Disable first
+                        track.stop(); // Then stop
+                    });
+                    micStream = null;
+                    mediaRecorder = null;
+                }
+            }
+        }
+
+        // Stop recording function
+        async function stopRecording() {
+            // IMMEDIATELY stop and disable the microphone before anything else
+            if (micStream) {
+                micStream.getTracks().forEach(track => {
+                    track.enabled = false; // Disable first
+                    track.stop(); // Then stop
+                });
+                micStream = null;
+            }
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+            }
+            mediaRecorder = null;
+            
+            resetRecordingState();
+            isRecording = false;
+            updateAudioBars(false);
+            micButton.classList.remove('active');
+            micText.textContent = 'Hold to Talk';
+        }
+
+        // Function to check if we can start recording
+        function canStartRecording() {
+            return !isSpeaking && !isRecording && document.body.classList.contains('call-connected');
+        }
+
+        // Update the processMessage function
+        async function processMessage(message) {
+            try {
+                showProcessingState();
+                updateProcessingText('Thinking...');
+                
+                const response = await fetch('/anime-models/shinobu/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+
+                if (!response.ok) throw new Error('Server error');
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                if (data.audio) {
+                    await playResponseAudio(data.audio);
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                updateProcessingText('Error occurred');
+                audioVisualizer.classList.remove('active');
+                stopBarAnimation();
+                updateSpeakingState(false);
+                setTimeout(() => updateProcessingText(""), 2000);
+            }
+        }
+
+        startButton.addEventListener('click', async () => {
+            startButton.classList.add('hidden');
+            backButton.classList.add('hidden');
+            callingOverlay.classList.remove('hidden');
+            processingContainer.classList.remove('visible'); // Hide the online text when call starts
+            stopButton.classList.remove('hidden'); // Show the stop button
+            setTimeout(() => callingOverlay.classList.add('visible'), 100);
+
+            // Create and play both ringtones sequentially
+            const defaultRingSound = new Audio('data:audio/wav;base64,//uQRAAAAWMSLwUIYAAsYkXgoQwAEaYLWfkWgAI0wWs/ItAAAGDgYtAgAyN+QWaAAihwMWm4G8QQRDiMcCBcH3Cc+CDv/7xA4Tvh9Rz/y8QADBwMWgQAZG/ILNAARQ4GLTcDeIIIhxGOBAuD7hOfBB3/94gcJ3w+o5/5eIAIAAAVwWgQAVQ2ORaIQwEMAJiDg95G4nQL7mQVWI6GwRcfsZAcsKkJvxgxEjzFUgfHoSQ9Qq7KNwqHwuB13MA4a1q/DmBrHgPcmjiGoh//EwC5nGPEmS4RcfkVKOhJf+WOgoxJclFz3kgn//dBA+ya1GhurNn8zb//9NNutNuhz31f////9vt///z+IdAEAAAK4LQIAKobHItEIYCGAExBwe8jcToF9zIKrEdDYIuP2MgOWFSE34wYiR5iqQPj0JIeoVdlG4VD4XA67mAcNa1fhzA1jwHuTRxDUQ//iYBczjHiTJcIuPyKlHQkv/LHQUYkuSi57yQT//uggfZNajQ3Vmz+Zt//+mm3Wm3Q576v////+32///5/EOgAAADVghQAAAAA//uQZAUAB1WI0PZugAAAAAoQwAAAEk3nRd2qAAAAACiDgAAAAAAABCqEEQRLCgwpBGMlJkIz8jKhGvj4k6jzRnqasNKIeoh5gI7BJaC1A1AoNBjJgbyApVS4IDlZgDU5WUAxEKDNmmALHzZp0Fkz1FMTmGFl1FMEyodIavcCAUHDWrKAIA4aa2oCgILEBupZgHvAhEBcZ6joQBxS76AgccrFlczBvKLC0QI2cBoCFvfTDAo7eoOQInqDPBtvrDEZBNYN5xwNwxQRfw8ZQ5wQVLvO8OYU+mHvFLlDh05Mdg7BT6YrRPpCBznMB2r//xKJjyyOh+cImr2/4doscwD6neZjuZR4AgAABYAAAABy1xcdQtxYBYYZdifkUDgzzXaXn98Z0oi9ILU5mBjFANmRwlVJ3/6jYDAmxaiDG3/6xjQQCCKkRb/6kg/wW+kSJ5//rLobkLSiKmqP/0ikJuDaSaSf/6JiLYLEYnW/+kXg1WRVJL/9EmQ1YZIsv/6Qzwy5qk7/+tEU0nkls3/zIUMPKNX/6yZLf+kFgAfgGyLFAUwY//uQZAwABfSFz3ZqQAAAAAngwAAAE1HjMp2qAAAAACZDgAAAD5UkTE1UgZEUExqYynN1qZvqIOREEFmBcJQkwdxiFtw0qEOkGYfRDifBui9MQg4QAHAqWtAWHoCxu1Yf4VfWLPIM2mHDFsbQEVGwyqQoQcwnfHeIkNt9YnkiaS1oizycqJrx4KOQjahZxWbcZgztj2c49nKmkId44S71j0c8eV9yDK6uPRzx5X18eDvjvQ6yKo9ZSS6l//8elePK/Lf//IInrOF/FvDoADYAGBMGb7FtErm5MXMlmPAJQVgWta7Zx2go+8xJ0UiCb8LHHdftWyLJE0QIAIsI+UbXu67dZMjmgDGCGl1H+vpF4NSDckSIkk7Vd+sxEhBQMRU8j/12UIRhzSaUdQ+rQU5kGeFxm+hb1oh6pWWmv3uvmReDl0UnvtapVaIzo1jZbf/pD6ElLqSX+rUmOQNpJFa/r+sa4e/pBlAABoAAAAA3CUgShLdGIxsY7AUABPRrgCABdDuQ5GC7DqPQCgbbJUAoRSUj+NIEig0YfyWUho1VBBBA//uQZB4ABZx5zfMakeAAAAmwAAAAF5F3P0w9GtAAACfAAAAAwLhMDmAYWMgVEG1U0FIGCBgXBXAtfMH10000EEEEEECUBYln03TTTdNBDZopopYvrTTdNa325mImNg3TTPV9q3pmY0xoO6bv3r00y+IDGid/9aaaZTGMuj9mpu9Mpio1dXrr5HERTZSmqU36A3CumzN/9Robv/Xx4v9ijkSRSNLQhAWumap82WRSBUqXStV/YcS+XVLnSS+WLDroqArFkMEsAS+eWmrUzrO0oEmE40RlMZ5+ODIkAyKAGUwZ3mVKmcamcJnMW26MRPgUw6j+LkhyHGVGYjSUUKNpuJUQoOIAyDvEyG8S5yfK6dhZc0Tx1KI/gviKL6qvvFs1+bWtaz58uUNnryq6kt5RzOCkPWlVqVX2a/EEBUdU1KrXLf40GoiiFXK///qpoiDXrOgqDR38JB0bw7SoL+ZB9o1RCkQjQ2CBYZKd/+VJxZRRZlqSkKiws0WFxUyCwsKiMy7hUVFhIaCrNQsKkTIsLivwKKigsj8XYlwt/WKi2N4d//uQZCSAAjURNIHpMZBGYiaQPSYyAAABLAAAAAAAACWAAAAApUF/Mg+0aohSIRobBAsMlO//Kk4soosy1JSFRYWaLC4qZBYWFRGZdwqKiwkNBVmoWFSJkWFxX4FFRQWR+LsS4W/rFRb/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////VEFHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAU291bmRib3kuZGUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMjAwNGh0dHA6Ly93d3cuc291bmRib3kuZGUAAAAAAAAAACU=');
+            const customRingSound = new Audio('ringtone.mp3');
+
+            let isConnected = false;
+
+            try {
+                // Start playing ringtones
+                await defaultRingSound.play();
+
+                defaultRingSound.onended = async () => {
+                    if (!isConnected) { // Only play custom ringtone if not connected yet
+                        try {
+                            await customRingSound.play();
+                        } catch (error) {
+                            console.error('Error playing custom ringtone:', error);
+                        }
+                    }
+                };
+
+                // Send initial call request immediately
+                const response = await fetch('/anime-models/shinobu/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ initialCall: true })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.audio) {
+                        try {
+                            callingOverlay.classList.remove('visible');
+                            setTimeout(() => callingOverlay.classList.add('hidden'), 300);
+
+                            micButton.classList.remove('hidden');
+                            showProcessingState();
+                            updateProcessingText('Speaking...');
+                            document.getElementById('micText').classList.remove('visible');
+                            
+                            // Disable mic button during initial greeting
+                            updateSpeakingState(true);
+                            stopText.classList.add('visible');
+
+                            // Show audio visualizer for greeting
+                            audioVisualizer.classList.add('active');
+                            updateAudioBars(true);
+                            audioVisualizer.classList.add('ai-speaking');
+                            startBarAnimation();
+
+                            const audio = new Audio(`data:audio/mp3;base64,${data.audio}`);
+                            window.currentAudio = audio;
+                            
+                            audio.onended = () => {
+                                stopBarAnimation();
+                                audioVisualizer.classList.remove('ai-speaking');
+                                audioVisualizer.classList.remove('active');
+                                updateProcessingText('');
+                                window.currentAudio = null;
+                                updateSpeakingState(false);
+                                stopText.classList.remove('visible');
+                                if (document.body.classList.contains('call-connected')) {
+                                    document.getElementById('micText').classList.add('visible');
+                                }
+                            };
+                            
+                            // Stop the ringtone when the greeting audio starts playing
+                            defaultRingSound.pause();
+                            customRingSound.pause();
+                            defaultRingSound.currentTime = 0;
+                            customRingSound.currentTime = 0;
+                            await audio.play();
+                            document.body.classList.add('call-connected');
+                            // Keep mic text hidden during initial greeting
+                            document.getElementById('micText').classList.remove('visible');
+                        } catch (error) {
+                            console.error('Error playing greeting:', error);
+                        }
+                    }
+
+                    updateProcessingText('');
+                } else {
+                    throw new Error('Failed to connect');
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                defaultRingSound.pause();
+                customRingSound.pause();
+                callingOverlay.classList.remove('visible');
+                startButton.classList.remove('hidden');
+                showStatus('Connection failed');
+            }
+        });
+
+        // Add orientation change handler
+        window.addEventListener('orientationchange', function() {
+            // Reset any necessary UI elements
+            setTimeout(() => {
+                window.scrollTo(0, 0);
+            }, 100);
+        });
+
+        // Prevent zoom on double tap
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(e) {
+            const now = Date.now();
+            const tapLength = now - lastTouchEnd;
+            lastTouchEnd = now;
+            if (tapLength < 300) {
+                e.preventDefault();
+            }
+        }, false);
+
+        stopButton.addEventListener('click', async () => {
+            try {
+                // Stop any ongoing audio
+                if (window.currentAudio) {
+                    window.currentAudio.pause();
+                    window.currentAudio = null;
+                }
+
+                // Send stop session request to server
+                await fetch('/anime-models/shinobu/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ stopSession: true })
+                });
+
+                // Reset UI elements immediately
+                stopButton.classList.add('hidden');
+                callingOverlay.classList.remove('visible');
+                micButton.classList.add('hidden');
+                audioVisualizer.classList.remove('active');
+                audioVisualizer.classList.remove('ai-speaking');
+                processingContainer.classList.remove('visible');
+
+                // Stop any ongoing animations
+                stopBarAnimation();
+
+                setTimeout(() => {
+                    // Show initial state elements
+                    callingOverlay.classList.add('hidden');
+                    startButton.classList.remove('hidden');
+                    backButton.classList.remove('hidden');
+                    updateProcessingText("");
+                    document.getElementById('micText').classList.remove('visible');
+                    document.body.classList.remove('call-connected');
+                }, 300);
+
+            } catch (error) {
+                console.error('Error stopping session:', error);
+                showStatus('Error stopping session');
+            }
+        });
+
+        // Add some CSS for the stop button
+        const style = document.createElement('style');
+        style.textContent = `
+            .control-button.stop-button {
+                background: rgba(255, 0, 0, 0.1);
+                border-color: #ff4444;
+                color: #ff4444;
+            }
+
+            .control-button.stop-button:hover {
+                background: rgba(255, 0, 0, 0.2);
+                box-shadow: 0 0 30px rgba(255, 0, 0, 0.3);
+            }
+
+            .control-button.stop-button::after {
+                background: conic-gradient(
+                    from 0deg,
+                    transparent 0deg,
+                    #ff4444 90deg,
+                    rgba(255, 68, 68, 0.3) 180deg,
+                    transparent 360deg
+                );
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Add stop button styling
+        stopButton.classList.add('stop-button');
+
+        // Show online text initially
+        document.addEventListener('DOMContentLoaded', function() {
+            const processingContainer = document.getElementById('processingContainer');
+            processingContainer.classList.add('visible');
+            updateProcessingText("");
+        });
+
+        // Add back the missing utility functions
+        function showStatus(text) {
+            status.textContent = text;
+            status.classList.add('visible');
+            setTimeout(() => status.classList.remove('visible'), 2000);
+        }
+
+        function showProcessingState() {
+            const container = document.getElementById('processingContainer');
+            container.classList.add('visible');
+        }
+
+        function updateProcessingText(text) {
+            const processingText = document.getElementById('processingText');
+            const micText = document.getElementById('micText');
+            processingText.textContent = text;
+            
+            // Disable mic button only during processing or thinking
+            if (text === "Processing..." || text === "Thinking...") {
+                micButton.style.pointerEvents = 'none';
+                micButton.style.opacity = '0.5';
+                micText.classList.remove('visible');
+            } else if (text === "Speaking...") {
+                // Don't disable button visually during speaking
+                micButton.style.pointerEvents = 'none';  // Still prevent interaction
+                micButton.style.opacity = '1';  // Keep it visible
+                micText.classList.remove('visible');
+            } else if (text === "") {
+                micButton.style.pointerEvents = 'auto';
+                micButton.style.opacity = '1';
+                if (document.body.classList.contains('call-connected') && !window.currentAudio) {
+                    micText.classList.add('visible');
+                }
+            }
+        }
+
+        function updateAudioBars(speaking) {
+            const visualizer = document.querySelector('.audio-visualizer');
+            const bars = visualizer.querySelectorAll('.audio-bar');
+            const micButton = document.getElementById('micButton');
+            const micText = document.getElementById('micText');
+            
+            if (speaking && !isRecording) {  // Only show visualizer when Shinobu is speaking and we're not recording
+                visualizer.classList.add('active');
+                micButton.style.background = 'transparent';
+                micButton.style.border = 'none';
+                micText.classList.remove('visible'); // Hide the text when Shinobu is speaking
+                bars.forEach(bar => {
+                    const randomDuration = Math.random() * (0.8 - 0.2) + 0.2;
+                    bar.style.animation = `barAnimation ${randomDuration}s ease-in-out infinite`;
+                });
+            } else {
+                visualizer.classList.remove('active');
+                micButton.style.background = '';
+                micButton.style.border = '';
+                if (document.body.classList.contains('call-connected')) {
+                    micText.classList.add('visible'); // Show the text only if call is connected
+                }
+                bars.forEach(bar => {
+                    bar.style.animation = 'none';
+                });
+            }
+        }
+
+        let animationInterval;
+        function startBarAnimation() {
+            animationInterval = setInterval(animateBars, 100);
+        }
+
+        function stopBarAnimation() {
+            clearInterval(animationInterval);
+            const bars = document.querySelectorAll('.audio-bar');
+            bars.forEach(bar => bar.style.height = '20px');
+            updateAudioBars(false);
+        }
+
+        function animateBars() {
+            const bars = document.querySelectorAll('.audio-bar');
+            bars.forEach(bar => {
+                const height = Math.random() * 40 + 10;
+                bar.style.height = `${height}px`;
+            });
+        }
+
+        // Process audio using Fish Audio API
+        async function processAudioToText(audioData) {
+            try {
+                // Make absolutely sure the microphone is stopped
+                if (micStream) {
+                    micStream.getTracks().forEach(track => {
+                        track.enabled = false;
+                        track.stop();
+                    });
+                    micStream = null;
+                }
+
+                showProcessingState();
+                updateProcessingText('Processing...');
+                updateSpeakingState(true); // Disable mic button while processing
+                
+                const response = await fetch('/anime-models/shinobu/speech-to-text', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ audio: audioData }),
+                    timeout: 60000 // 60 second timeout
+                });
+
+                if (!response.ok) {
+                    updateSpeakingState(false);
+                    if (response.status === 413) {
+                        updateProcessingText('Recording too long. Please try a shorter message.');
+                        setTimeout(() => updateProcessingText(""), 3000);
+                        throw new Error('Recording too long');
+                    } else if (response.status === 429) {
+                        updateProcessingText('Please wait before trying again...');
+                        setTimeout(() => updateProcessingText(""), 3000);
+                        throw new Error('Rate limit exceeded');
+                    } else {
+                        const data = await response.json();
+                        throw new Error(data.details || data.error || 'Speech to text failed');
+                    }
+                }
+
+                const data = await response.json();
+                
+                if (data.text && data.text.trim()) {
+                    updateProcessingText('Processing response...');
+                    await processMessage(data.text);
+                } else {
+                    updateSpeakingState(false);
+                    updateProcessingText('No speech detected. Please try again.');
+                    setTimeout(() => updateProcessingText(""), 3000);
+                }
+            } catch (error) {
+                console.error('Error processing speech:', error);
+                updateSpeakingState(false);
+                
+                if (error.message.includes('Recording too long')) {
+                    updateProcessingText('Recording too long. Please try a shorter message.');
+                } else if (error.message.includes('Rate limit')) {
+                    updateProcessingText('Please wait before trying again...');
+                } else {
+                    updateProcessingText('Failed to process speech. Please try again.');
+                }
+                
+                setTimeout(() => updateProcessingText(""), 3000);
+                throw error;
+            }
+        }
+
+        // Update the playResponseAudio function
+        async function playResponseAudio(audioData) {
+            try {
+                // Double check that microphone is stopped before playing
+                if (micStream) {
+                    micStream.getTracks().forEach(track => {
+                        track.enabled = false;
+                        track.stop();
+                    });
+                    micStream = null;
+                }
+
+                updateSpeakingState(true);
+                updateProcessingText('Speaking...');
+                document.getElementById('micText').classList.remove('visible');
+                stopText.classList.add('visible'); // Add close icon when Shinobu speaks
+                audioVisualizer.classList.add('active');
+                updateAudioBars(true);
+                audioVisualizer.classList.add('ai-speaking');
+                startBarAnimation();
+
+                const audio = new Audio(`data:audio/mp3;base64,${audioData}`);
+                window.currentAudio = audio;
+                
+                audio.onended = () => {
+                    stopBarAnimation();
+                    audioVisualizer.classList.remove('ai-speaking');
+                    audioVisualizer.classList.remove('active');
+                    updateProcessingText('');
+                    window.currentAudio = null;
+                    updateSpeakingState(false);
+                    if (document.body.classList.contains('call-connected')) {
+                        document.getElementById('micText').classList.add('visible');
+                    }
+                };
+                
+                // Stop the ringtone when the greeting audio starts playing
+                await audio.play();
+            } catch (error) {
+                console.error('Error playing audio:', error);
+                updateSpeakingState(false);
+            }
+        }
+
+        // Make mic button more responsive
+        let touchTimeout;
+        let lastTapTime = 0;
+        const DOUBLE_TAP_DELAY = 300;
+        
+        // Pre-cache DOM elements
+        const micButtonEl = document.getElementById('micButton');
+        
+        const startRecordingWithFeedback = (e) => {
+            if (e) e.preventDefault();
+            
+            // Prevent double-tap zoom on mobile
+            const currentTime = Date.now();
+            const tapLength = currentTime - lastTapTime;
+            lastTapTime = currentTime;
+            if (tapLength < DOUBLE_TAP_DELAY) {
+                e && e.preventDefault();
+                return;
+            }
+
+            if (!canStartRecording()) return;
+            
+            // Use RAF for smooth visual feedback
+            requestAnimationFrame(() => {
+                micButtonEl.classList.add('active');
+            });
+            startRecording();
+        };
+
+        const stopRecordingWithFeedback = (e) => {
+            if (e) e.preventDefault();
+            if (!canStartRecording() && !isRecording) return;
+            
+            requestAnimationFrame(() => {
+                micButtonEl.classList.remove('active');
+            });
+            stopRecording();
+            clearTimeout(touchTimeout);
+        };
+
+        // Touch events with improved handling and performance
+        micButtonEl.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            touchTimeout = setTimeout(() => startRecordingWithFeedback(e), 0);
+        }, { passive: false, capture: true });
+
+        micButtonEl.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            stopRecordingWithFeedback(e);
+        }, { passive: false, capture: true });
+
+        micButtonEl.addEventListener('touchcancel', (e) => {
+            e.preventDefault();
+            stopRecordingWithFeedback(e);
+        }, { passive: false, capture: true });
+
+        // Mouse events with improved handling
+        micButtonEl.addEventListener('mousedown', (e) => {
+            touchTimeout = setTimeout(() => startRecordingWithFeedback(e), 0);
+        }, { capture: true });
+
+        micButtonEl.addEventListener('mouseup', (e) => stopRecordingWithFeedback(e), { capture: true });
+        micButtonEl.addEventListener('mouseleave', (e) => stopRecordingWithFeedback(e), { capture: true });
+
+        // Optimize touch move prevention
+        const touchMoveHandler = (e) => {
+            if (isRecording) {
+                e.preventDefault();
+                return false;
+            }
+        };
+        
+        document.body.addEventListener('touchmove', touchMoveHandler, { 
+            passive: false, 
+            capture: true 
+        });
+
+        // Prevent text selection during recording
+        document.body.addEventListener('selectstart', (e) => {
+            if (isRecording) {
+                e.preventDefault();
+                return false;
+            }
+        }, { capture: true });
+
+        // Prevent text selection during recording
+        document.body.addEventListener('selectstart', (e) => {
+            if (isRecording) {
+                e.preventDefault();
+                return false;
+            }
+        }, { capture: true });
+
+        // Add class to prevent selection
+        document.body.classList.add('no-select');
+
+        // Pre-cache stop text element
+        const stopText = document.getElementById('stopText');
+
+        // Handle stop button click with optimized performance
+        stopText.addEventListener('click', (e) => {
+            e.preventDefault();
+            
+            if (window.currentAudio) {
+                window.currentAudio.pause();
+                window.currentAudio = null;
+            }
+
+            requestAnimationFrame(() => {
+                stopBarAnimation();
+                audioVisualizer.classList.remove('ai-speaking');
+                audioVisualizer.classList.remove('active');
+                updateProcessingText('');
+                updateSpeakingState(false);
+                
+                if (document.body.classList.contains('call-connected')) {
+                    document.getElementById('micText').classList.add('visible');
+                }
+            });
+        }, { capture: true });
+    </script>
+</body>
+</html>

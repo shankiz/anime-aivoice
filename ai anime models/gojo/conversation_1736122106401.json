@@ -1,0 +1,21 @@
+[
+  {
+    "response": "<strong>Gojo:</strong> Yo, what's good? I'm Gojo."
+  },
+  {
+    "user": "<strong>You</strong>:  who are you, Are you a big chair.",
+    "response": "<strong>Gojo</strong>: Nope, not a chair. I'm Gojo Satoru, the strongest teacher at Jujutsu High!"
+  },
+  {
+    "user": "<strong>You</strong>: I see a tea chair, not a chair. Are you deaf.",
+    "response": "<strong>Gojo</strong>: Deaf? I'm the strongest! I can hear you just fine. As for the chair, it's a tea chair. Don't be so uptight, it's just semantics."
+  },
+  {
+    "user": "<strong>You</strong>: What is, Can you explain that.",
+    "response": "<strong>Gojo</strong>: Sure, I can help you with that. Just give me a specific topic or question, and I'll do my best to explain it clearly."
+  },
+  {
+    "user": "<strong>You</strong>: I, what is semantics, semantics, The word that you just said, I don't know the meaning of that. Can you tell me about that.",
+    "response": "<strong>Gojo</strong>: Semantics? It's the study of words and their meanings! It's all about understanding how language works and how we communicate with each other. Pretty cool, huh?"
+  }
+]

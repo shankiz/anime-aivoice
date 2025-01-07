@@ -1,0 +1,4671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatGuru - Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        :root {
+            --primary: #7C3AED;
+            --primary-light: #8B5CF6;
+            --dark: #1F2937;
+            --darker: #111827;
+            --light: #F3F4F6;
+            --nav-height: 60px;
+            --header-height: 60px;
+            --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+            --background: var(--darker);
+            --text: var(--light);
+            --text-secondary: rgba(255, 255, 255, 0.8);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--darker);
+            color: var(--light);
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 24px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            width: 100%;
+            background: var(--background);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            max-width: 1200px;
+            padding: 0;
+            justify-content: space-between;
+        }
+
+        .greeting {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text);
+            text-align: left;
+            display: block;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.85) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .user-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text);
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        .history-section-active .greeting {
+            display: none;
+        }
+
+        @media (max-width: 480px) {
+            header {
+                padding: 14px 20px;
+            }
+
+            .greeting {
+                font-size: 1.3rem;
+            }
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 16px;
+        }
+
+        /* Stats Cards */
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary-light);
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .stat-value i {
+            color: #FFD700;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+
+        /* Claim Section Styles */
+        .claim-section {
+            margin: 16px;
+            padding: 16px;
+            background: rgba(124, 58, 237, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(124, 58, 237, 0.2);
+        }
+
+        .claim-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .claim-timer {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.9);
+            text-align: center;
+        }
+
+        .claim-button {
+            background: linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            max-width: 250px;
+            justify-content: center;
+        }
+
+        .claim-button:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
+        }
+
+        .claim-button:disabled {
+            background: rgba(124, 58, 237, 0.3);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .claim-button i {
+            font-size: 1.1rem;
+        }
+
+        @media (max-width: 768px) {
+            .claim-section {
+                margin: 12px;
+                padding: 12px;
+            }
+
+            .claim-button {
+                font-size: 0.9rem;
+                padding: 10px 20px;
+            }
+        }
+
+        /* Premium Banner */
+        .premium-banner {
+            background: linear-gradient(45deg, #8b5cf6, #7c3aed);
+            border-radius: 16px;
+            padding: 20px;
+            margin: 0 0 24px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            max-height: 500px;
+            opacity: 1;
+            transition: all 0.5s cubic-bezier(0.65, 0, 0.35, 1);
+            overflow: hidden;
+            transform-origin: top;
+            transform: translateY(0) scale(1);
+            width: 100%;
+        }
+
+        .premium-banner.hiding {
+            max-height: 0;
+            margin-top: 0;
+            margin-bottom: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            opacity: 0;
+            transform: translateY(-6px) scale(0.995);
+            pointer-events: none;
+        }
+
+        .premium-banner-content {
+            flex-grow: 1;
+            margin-right: 32px;
+            min-width: 0; /* Allows text to wrap properly on small screens */
+        }
+
+        .premium-banner-content h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0 0 6px 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .premium-banner-content p {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.9);
+            margin: 0;
+            padding-right: 8px;
+            line-height: 1.2;
+        }
+
+        .close-premium {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            color: rgba(255, 255, 255, 0.25);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 2px;
+            font-size: 0.65rem;
+            line-height: 1;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            opacity: 0.6;
+        }
+
+        .close-premium:hover {
+            color: rgba(255, 255, 255, 0.5);
+            background: rgba(255, 255, 255, 0.05);
+            opacity: 1;
+        }
+
+        .upgrade-btn {
+            background: white;
+            color: #7c3aed;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .upgrade-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        @media (max-width: 480px) {
+            .premium-banner {
+                padding: 16px;
+                margin: 0 0 20px 0;
+            }
+
+            .premium-banner-content {
+                margin-right: 24px;
+            }
+
+            .premium-banner-content h3 {
+                font-size: 1rem;
+            }
+
+            .premium-banner-content p {
+                font-size: 0.8rem;
+            }
+
+            .upgrade-btn {
+                padding: 6px 12px;
+                font-size: 0.85rem;
+            }
+        }
+
+        /* Characters Section */
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .unlock-info {
+            font-size: 14px;
+            color: #FFD700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Mobile-First Grid Layout */
+        .characters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 12px;
+            padding: 12px;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 100%;
+        }
+
+        /* Larger screens */
+        @media (min-width: 768px) {
+            .characters-grid {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+                gap: 16px;
+                padding: 16px;
+            }
+        }
+
+        /* Card Styles - Mobile First */
+        .character-card {
+            background: var(--darker);
+            border-radius: 12px;
+            padding: 12px 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+            width: 100%;
+            min-width: 120px;
+            max-width: 160px;
+            margin: 0;
+        }
+
+        .character-name {
+            font-size: 0.78rem;
+            font-weight: 600;
+            margin: 0 0 8px 0;
+            color: var(--light);
+            line-height: 1.2;
+            padding: 0 4px;
+            text-align: center;
+        }
+
+        @media (max-width: 480px) {
+            .character-name {
+                font-size: 0.73rem;
+            }
+        }
+
+        .lock-icon {
+            font-size: 0.7rem;
+            margin-right: 4px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        @media (min-width: 768px) {
+            .character-name {
+                font-size: 1rem;
+                margin: 0 0 10px 0;
+            }
+        }
+
+        .model-image-container {
+            width: 100%;
+            height: 120px;
+            overflow: hidden;
+            position: relative;
+            border-radius: 8px;
+            margin: 4px 0;
+        }
+
+        .character-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: top center;
+            border-radius: 8px;
+            border: 2px solid var(--primary);
+        }
+
+        .character-card:hover .character-img {
+            transform: scale(1.05);
+        }
+
+        /* Button Styles - Mobile Optimized */
+        .call-button, .unlock-button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 6px 8px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            text-decoration: none;
+        }
+
+        .info-button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            width: 100%;
+        }
+
+        .info-button:hover {
+            background: #1976D2;
+            transform: translateY(-1px);
+        }
+
+        .call-button:hover, .unlock-button:hover {
+            background: var(--primary-light);
+            transform: scale(1.02);
+        }
+
+        .call-button:active, .unlock-button:active {
+            transform: scale(0.98);
+        }
+
+        .call-button i, .unlock-button i {
+            color: #FFD700;
+        }
+
+        /* Loading animation for buttons */
+        .unlock-button.loading {
+            position: relative;
+            color: transparent !important;
+            pointer-events: none;
+        }
+        
+        .unlock-button.loading::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 50%;
+            left: 50%;
+            margin-top: -8px;
+            margin-left: -8px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            animation: button-loading-spinner 0.6s linear infinite;
+        }
+
+        @keyframes button-loading-spinner {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Character Info Modal */
+        .character-info-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .character-info-content {
+            background: rgba(17, 24, 39, 0.85);
+            padding: 0;
+            border-radius: 24px;
+            width: min(420px, 90%);
+            position: relative;
+            color: var(--text);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: modalFadeIn 0.3s cubic-bezier(0.21, 1.02, 0.73, 1);
+            overflow: hidden;
+            max-height: min(600px, 90vh);
+            margin: auto;
+        }
+
+        @keyframes modalFadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.98);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .character-info-header {
+            position: relative;
+            width: 100%;
+            padding-top: 100%;
+            margin-bottom: 0;
+            overflow: hidden;
+        }
+
+        .character-info-img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: top center;
+        }
+
+        .character-info-details {
+            padding: 20px;
+            background: rgba(17, 24, 39, 0.95);
+            position: relative;
+            z-index: 2;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .character-info-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0 0 12px 0;
+            background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.8) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+        }
+
+        .character-description {
+            margin: 0 0 16px 0;
+            line-height: 1.5;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.95rem;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .character-info-traits {
+            margin-top: 12px;
+            color: white;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .highlight {
+            color: var(--primary-light);
+            font-weight: 500;
+        }
+
+        .character-info-close {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(0, 0, 0, 0.5);
+            border: none;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 3;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+
+        .character-info-close:hover {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+        }
+
+        @media (max-width: 480px) {
+            .character-info-content {
+                width: 92%;
+                margin: 0;
+            }
+
+            .character-info-details {
+                padding: 16px;
+            }
+
+            .character-info-name {
+                font-size: 1.3rem;
+            }
+
+            .character-description {
+                font-size: 0.9rem;
+            }
+        }
+
+        /* Anime Source Highlighting */
+        .character-description .highlight {
+            font-weight: 700;
+            color: #8B5CF6;
+        }
+
+        /* Profile Section Styles */
+        .profile-section {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: calc(var(--nav-height) + var(--safe-area-bottom));
+            background: var(--darker);
+            z-index: 98;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .profile-section.active {
+            display: block;
+        }
+
+        .profile-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 32px 0;
+            text-align: center;
+        }
+
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            font-size: 48px;
+            color: var(--text);
+        }
+
+        .profile-name {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--text);
+            margin: 8px 0 0 0;
+            text-align: center;
+        }
+
+        .profile-email {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            text-align: center;
+        }
+
+        .profile-stats {
+            background: var(--dark);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .profile-actions {
+            margin-top: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 0 0 20px 0;
+        }
+
+        .profile-button {
+            padding: 16px;
+            border-radius: 8px;
+            background: var(--primary);
+            color: var(--text);
+            border: none;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .profile-button.danger {
+            background: #dc3545;
+        }
+
+        .profile-button:active {
+            opacity: 0.8;
+        }
+
+        @media (max-width: 480px) {
+            .profile-section {
+                padding: 16px;
+            }
+
+            .profile-avatar {
+                width: 100px;
+                height: 100px;
+                font-size: 40px;
+            }
+
+            .profile-name {
+                font-size: 1.3rem;
+            }
+
+            .profile-email {
+                font-size: 0.9rem;
+            }
+
+            .stat-value {
+                font-size: 1.3rem;
+            }
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: calc(var(--nav-height) + var(--safe-area-bottom));
+            background: rgba(17, 24, 39, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-around;
+            padding-bottom: var(--safe-area-bottom);
+            z-index: 100;
+        }
+
+        .nav-item {
+            background: none;
+            border: none;
+            color: var(--light);
+            text-decoration: none;
+            font-size: 12px;
+            opacity: 0.6;
+            transition: all 0.3s ease;
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px;
+            width: 25%;
+        }
+
+        .nav-item.active {
+            opacity: 1;
+            color: var(--primary-light);
+        }
+
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 5px;
+            height: 5px;
+            background-color: var(--primary-light);
+            border-radius: 50%;
+        }
+
+        .nav-item i {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+
+        /* Buttons */
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn:active {
+            background: var(--primary-light);
+        }
+
+        /* Modals */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .modal-content {
+            background: var(--dark);
+            border-radius: 16px;
+            padding: 24px;
+            width: 100%;
+            max-width: 320px;
+            position: relative;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: none;
+            border: none;
+            color: var(--light);
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .plan-option {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .plan-name {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .plan-price {
+            font-size: 24px;
+            color: var(--primary-light);
+            margin-bottom: 8px;
+        }
+
+        .plan-features {
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        @media (min-width: 768px) {
+            .stats-container {
+                grid-template-columns: repeat(4, 1fr);
+            }
+
+            .characters-grid {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            }
+        }
+
+        /* Add smooth scrolling */
+        html {
+            scroll-behavior: smooth;
+            scroll-padding-top: var(--header-height);
+        }
+
+        /* Add scroll-to-top target */
+        #top {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        /* Shared Grid Styles */
+        .characters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 16px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        /* Shared Card Styles */
+        .character-card {
+            background: var(--darker);
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .character-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .model-image-container {
+            position: relative;
+            width: 100%;
+            padding-bottom: 100%;
+            margin: 4px 0;
+        }
+
+        .character-img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: top center;
+            border-radius: 8px;
+            border: 2px solid var(--primary);
+        }
+
+        .character-name {
+            font-size: 0.78rem;
+            font-weight: 600;
+            margin: 0 0 8px 0;
+            color: var(--light);
+            line-height: 1.2;
+            padding: 0 4px;
+            text-align: center;
+        }
+
+        @media (max-width: 480px) {
+            .character-name {
+                font-size: 0.73rem;
+            }
+        }
+
+        /* Button Styles */
+        .chat-button, .unlock-button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            text-decoration: none;
+        }
+
+        .chat-button:hover, .unlock-button:hover {
+            background: var(--primary-light);
+            transform: scale(1.02);
+        }
+
+        .chat-button:active, .unlock-button:active {
+            transform: scale(0.98);
+        }
+
+        .chat-button i, .unlock-button i {
+            color: #FFD700;
+        }
+
+        /* Locked Character Card */
+        .character-card.locked {
+            position: relative;
+        }
+
+        .unlock-button {
+            background: var(--primary);
+        }
+
+        .unlock-button i {
+            color: #FFD700;
+            font-size: 0.9rem;
+        }
+
+        .unlock-button:hover {
+            background: var(--primary-light);
+            transform: scale(1.02);
+        }
+
+        .unlock-button:active {
+            transform: scale(0.98);
+        }
+
+        @media (min-width: 768px) {
+            .call-button, .unlock-button {
+                font-size: 0.9rem;
+                padding: 8px;
+                height: 36px;
+            }
+        }
+
+        .no-characters-message {
+            text-align: center;
+            padding: 32px 20px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+            line-height: 1.4;
+            grid-column: 1 / -1;
+            max-width: 280px;
+            margin: 0 auto;
+        }
+
+        .no-characters-message p:first-child {
+            display: inline;
+        }
+
+        .no-characters-message p:last-child {
+            display: inline;
+        }
+
+        @media (max-width: 480px) {
+            .no-characters-message {
+                font-size: 0.85rem;
+                padding: 24px 16px;
+            }
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+
+        /* Position for desktop */
+        @media (min-width: 768px) {
+            .toast-container {
+                top: 20px;
+                right: 20px;
+                max-width: 380px;
+            }
+        }
+
+        /* Position for mobile */
+        @media (max-width: 767px) {
+            .toast-container {
+                bottom: 64px; /* Above bottom nav */
+                left: 16px;
+                right: 16px;
+            }
+        }
+
+        .toast {
+            background: rgba(28, 28, 28, 0.95);
+            color: white;
+            padding: 14px 16px;
+            border-radius: 14px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 
+                        0 8px 24px rgba(0, 0, 0, 0.1);
+            font-size: 0.95rem;
+            transform: translateY(20px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: auto;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .toast-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            line-height: 1.4;
+            padding-right: 8px;
+        }
+
+        .toast-icon {
+            flex-shrink: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .toast.success .toast-icon {
+            color: var(--primary);
+        }
+
+        .toast.error .toast-icon {
+            color: #f44336;
+        }
+
+        .toast.info .toast-icon {
+            color: #2196F3;
+        }
+
+        .toast-message {
+            flex: 1;
+            font-weight: 400;
+        }
+
+        .toast-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 4px;
+        }
+
+        .toast-button {
+            padding: 8px 16px;
+            border-radius: 10px;
+            border: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .toast-button:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .toast-button.claim {
+            background: var(--primary);
+            color: white;
+        }
+
+        .toast-button.claim:hover {
+            filter: brightness(110%);
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--primary);
+        }
+
+        .toast.error {
+            border-left: 4px solid #f44336;
+        }
+
+        .toast.info {
+            border-left: 4px solid #2196F3;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast-progress {
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.08);
+            overflow: hidden;
+        }
+
+        .toast-progress-bar {
+            height: 100%;
+            width: 100%;
+            background: var(--primary);
+            transform-origin: left;
+            transition: transform 10s linear;
+        }
+
+        .toast.info .toast-progress-bar {
+            background: #2196F3;
+        }
+
+        .toast.success .toast-progress-bar {
+            background: var(--primary);
+        }
+
+        .toast.error .toast-progress-bar {
+            background: #f44336;
+        }
+
+        .toast.show .toast-progress-bar {
+            transform: scaleX(0);
+        }
+
+        /* Character unlock animation */
+        .character-unlock-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9998;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .character-unlock-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .character-unlock-content {
+            background: rgba(17, 24, 39, 0.95);
+            padding: 24px;
+            border-radius: 24px;
+            text-align: center;
+            color: white;
+            max-width: 400px;
+            width: 90%;
+            transform: scale(0.8);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25),
+                        0 0 0 1px rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(124, 58, 237, 0.3);
+        }
+
+        .character-unlock-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            background: linear-gradient(45deg, 
+                rgba(124, 58, 237, 0.1) 0%,
+                rgba(139, 92, 246, 0.05) 100%);
+            pointer-events: none;
+        }
+
+        .character-unlock-overlay.show .character-unlock-content {
+            transform: scale(1);
+        }
+
+        .unlock-icon {
+            font-size: 4em;
+            margin: 0 0 20px 0;
+            display: inline-block;
+            color: var(--primary);
+        }
+
+        .character-unlock-title {
+            font-size: 1.5rem;
+            margin: 16px 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+        }
+
+        @media (min-width: 481px) {
+            .character-unlock-content {
+                padding: 32px;
+            }
+            .character-unlock-title {
+                font-size: 1.8rem;
+            }
+        }
+
+        .character-unlock-subtitle {
+            margin: 12px 0;
+            font-size: 1.1em;
+            opacity: 0.9;
+            line-height: 1.4;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .unlocked-character-name {
+            color: var(--primary-light);
+            font-weight: 600;
+        }
+
+        .continue-button {
+            margin-top: 24px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .continue-button i {
+            font-size: 0.9em;
+            transition: transform 0.2s ease;
+        }
+
+        .continue-button:hover {
+            background: var(--primary-light);
+            transform: translateY(-2px);
+        }
+
+        .continue-button:active {
+            transform: translateY(0);
+        }
+
+        .continue-button:hover i {
+            transform: translateX(4px);
+        }
+
+        @media (max-width: 480px) {
+            .character-unlock-title {
+                font-size: 1.6em;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .character-unlock-title {
+                font-size: 1.4em;
+            }
+        }
+
+        /* Insufficient Diamonds Modal */
+        .insufficient-diamonds-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .insufficient-diamonds-modal.show {
+            display: flex;
+        }
+
+        .insufficient-diamonds-content {
+            background: var(--dark);
+            border-radius: 16px;
+            padding: 24px;
+            width: 90%;
+            max-width: 400px;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        .insufficient-diamonds-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .insufficient-diamonds-header i {
+            font-size: 24px;
+            color: #FFD700;
+        }
+
+        .insufficient-diamonds-header h2 {
+            margin: 0;
+            font-size: 20px;
+            color: white;
+        }
+
+        .insufficient-diamonds-body {
+            margin-bottom: 24px;
+        }
+
+        .insufficient-diamonds-body p {
+            margin: 0;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        .insufficient-diamonds-footer {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .insufficient-diamonds-button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            transition: all 0.2s ease;
+        }
+
+        .insufficient-diamonds-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .insufficient-diamonds-button.primary {
+            background: var(--primary);
+        }
+
+        .insufficient-diamonds-button.primary:hover {
+            background: var(--primary-light);
+        }
+
+        /* Call History Styles */
+        .call-history {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .call-history h2 {
+            font-size: 1.2rem;
+            margin-bottom: 12px;
+            color: var(--text);
+        }
+
+        .call-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .call-item {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 12px;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .call-character-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .call-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .call-character-name {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .call-timestamp {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .call-minutes {
+            background: rgba(124, 58, 237, 0.1);
+            color: var(--primary-light);
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .no-calls {
+            text-align: center;
+            padding: 24px;
+            color: var(--text-secondary);
+        }
+
+        /* History Section */
+        .section {
+            padding: 16px;
+            background: var(--background);
+        }
+
+        .section-header {
+            margin-bottom: 16px;
+        }
+
+        .section-header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 16px;
+            max-width: 100%;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        .history-item {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            -webkit-tap-highlight-color: transparent;
+            margin: 0;
+            gap: 8px;
+        }
+
+        .history-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .history-character-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            text-align: left;
+        }
+
+        .history-character-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--primary);
+        }
+
+        .history-character-details {
+            flex: 1;
+            text-align: left;
+        }
+
+        .history-character-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 4px;
+        }
+
+        .history-timestamp {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .history-duration {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: var(--primary);
+            white-space: nowrap;
+        }
+
+        .history-content {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.95rem;
+            line-height: 1.5;
+            text-align: left;
+        }
+
+        @media (max-width: 768px) {
+            .history-list {
+                padding: 12px;
+            }
+
+            .history-item {
+                padding: 14px;
+                margin-bottom: 12px;
+            }
+
+            .history-character-avatar {
+                width: 40px;
+                height: 40px;
+            }
+
+            .history-character-name {
+                font-size: 1rem;
+            }
+
+            .history-timestamp {
+                font-size: 0.8rem;
+            }
+
+            .history-duration {
+                font-size: 0.85rem;
+                padding: 4px 10px;
+            }
+
+            .history-content {
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .history-list {
+                padding: 10px;
+            }
+
+            .history-header {
+                flex-wrap: wrap;
+            }
+
+            .history-duration {
+                margin-left: 60px;
+                margin-top: 4px;
+            }
+        }
+
+        /* Add smooth scrolling for the history section */
+        .history-section {
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Add pull-to-refresh styling */
+        .history-refresh-indicator {
+            text-align: center;
+            padding: 20px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .history-refresh-indicator.visible {
+            display: block;
+        }
+
+        /* Empty state styling */
+        .history-empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .history-empty-state i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            color: var(--primary);
+        }
+
+        .history-empty-state p {
+            font-size: 1rem;
+            margin: 8px 0;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 16px;
+            max-width: 100%;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        .history-item {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: background-color 0.2s ease;
+            margin: 0;
+        }
+
+        .history-character {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .history-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+
+        .history-name {
+            font-weight: 600;
+            color: var(--primary-light);
+            margin-bottom: 2px;
+        }
+
+        .history-timestamp {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .history-message {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 0.85rem;
+            line-height: 1.4;
+            padding-left: 0;
+            text-align: left;
+            margin-left: 46px;
+        }
+
+        .empty-history {
+            text-align: center;
+            padding: 40px 20px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .empty-history i {
+            font-size: 2.5rem;
+            margin-bottom: 16px;
+            color: var(--primary-light);
+            opacity: 0.8;
+        }
+
+        .empty-history p {
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+            letter-spacing: 0.3px;
+        }
+
+        .error-message {
+            text-align: center;
+            padding: 20px;
+            color: #ff4444;
+            background: rgba(255, 68, 68, 0.08);
+            border-radius: 12px;
+            margin: 20px;
+            border: 1px solid rgba(255, 68, 68, 0.2);
+            font-size: 0.95rem;
+            letter-spacing: 0.2px;
+        }
+
+        @media (max-width: 768px) {
+            .history-list {
+                padding: 8px;
+                gap: 6px;
+            }
+
+            .history-item {
+                padding: 10px;
+            }
+
+            .history-avatar {
+                width: 32px;
+                height: 32px;
+            }
+
+            .history-message {
+                padding-left: 0;
+                margin-left: 42px;
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Referral button and modal styles */
+        .refer-button {
+            background: linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .refer-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+        }
+
+        .refer-button i {
+            font-size: 0.9rem;
+        }
+
+        .referral-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .referral-modal-content {
+            background: var(--darker);
+            border-radius: 12px;
+            padding: 32px;
+            width: 90%;
+            max-width: 400px;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+
+        .referral-modal-title {
+            font-size: 1.5em;
+            margin-bottom: 16px;
+            color: var(--text);
+            white-space: nowrap;
+            text-align: center;
+        }
+
+        @media (max-width: 480px) {
+            .referral-modal-title {
+                font-size: 1.3em;
+            }
+        }
+
+        .referral-description {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 24px;
+            padding: 0 12px;
+        }
+
+        .referral-link-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 6px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.2s ease;
+        }
+
+        .referral-link-container:hover {
+            border-color: rgba(124, 58, 237, 0.3);
+        }
+
+        #referralLink {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--primary-light);
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.9rem;
+            padding: 10px 12px;
+            outline: none;
+            transition: all 0.2s ease;
+            height: 40px;
+            min-width: 0;
+        }
+
+        #referralLink:hover {
+            color: white;
+        }
+
+        .copy-button {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 40px;
+            height: 40px;
+        }
+
+        .copy-button:hover {
+            background: var(--primary-light);
+            transform: translateY(-1px);
+        }
+
+        .copy-button:active {
+            transform: translateY(0);
+        }
+
+        .copy-button i {
+            font-size: 1rem;
+        }
+
+        .copy-indicator {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            z-index: 1000;
+        }
+
+        .copy-indicator::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-top: 4px solid rgba(0, 0, 0, 0.7);
+        }
+
+        .copy-indicator.show {
+            opacity: 1;
+        }
+
+        .referral-steps {
+            text-align: left;
+            margin-top: 24px;
+            padding: 0 8px;
+        }
+
+        .referral-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .step-number {
+            background: rgba(124, 58, 237, 0.1);
+            color: var(--primary-light);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .step-text {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .close-referral-modal {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 8px;
+            line-height: 1;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .close-referral-modal:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.2);
+            transform: rotate(90deg);
+        }
+
+        .gift-icon {
+            font-size: 3.5rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+        }
+
+        /* Add styles for claim button */
+        .claim-reward-button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 16px;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .claim-reward-button:disabled {
+            background: rgba(124, 58, 237, 0.5);
+            cursor: not-allowed;
+        }
+
+        .claim-reward-button.loading {
+            opacity: 0.7;
+            cursor: wait;
+        }
+
+        @media (max-width: 480px) {
+            .claim-reward-button {
+                font-size: 0.9em;
+                padding: 12px 16px;
+            }
+        }
+
+        /* Reward Success Overlay */
+        .reward-success-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .reward-success-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .reward-success-content {
+            background: rgba(17, 24, 39, 0.95);
+            padding: 32px;
+            border-radius: 24px;
+            text-align: center;
+            color: white;
+            max-width: 400px;
+            width: 90%;
+            transform: scale(0.8);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25),
+                        0 0 0 1px rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(124, 58, 237, 0.3);
+        }
+
+        .reward-success-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            background: linear-gradient(45deg, 
+                rgba(124, 58, 237, 0.1) 0%,
+                rgba(139, 92, 246, 0.05) 100%);
+            pointer-events: none;
+        }
+
+        .reward-success-overlay.show .reward-success-content {
+            transform: scale(1);
+        }
+
+        .reward-success-content h2 {
+            font-size: 1.8em;
+            margin: 0 0 16px 0;
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .reward-success-content p {
+            margin: 12px 0;
+            font-size: 1.1em;
+            opacity: 0.9;
+            line-height: 1.4;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .reward-success-content .messages-icon {
+            font-size: 4em;
+            margin: 0 0 20px 0;
+            display: inline-block;
+        }
+
+        .reward-success-content .invite-more {
+            margin-top: 24px;
+            font-style: normal;
+            color: var(--primary-light);
+            font-size: 1em;
+            padding: 16px;
+            background: rgba(124, 58, 237, 0.1);
+            border-radius: 16px;
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .reward-success-content .invite-more:hover {
+            background: rgba(124, 58, 237, 0.15);
+            border-color: rgba(124, 58, 237, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .reward-success-content strong {
+            color: var(--primary-light);
+            font-weight: 600;
+        }
+
+        @media (max-width: 480px) {
+            .reward-success-content h2 {
+                font-size: 1.6em;
+            }
+        }
+
+        /* Anime Source Highlighting */
+        .reward-success-content .highlight {
+            font-weight: 700;
+            color: #8B5CF6;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(5px, -5px) rotate(10deg); }
+        }
+
+        .reward-success-content .thanks-button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .reward-success-content .thanks-button:hover {
+            background: var(--primary-light);
+            transform: translateY(-2px);
+        }
+
+        .reward-success-content .thanks-button:active {
+            transform: translateY(0);
+        }
+
+        .reward-success-content .thanks-button:hover i {
+            transform: translateX(4px);
+        }
+
+        /* Add styles for confetti canvas */
+        /* Removed unused confetti canvas CSS */
+
+        /* History section styles */
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 12px;
+            max-width: 100%;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        .history-item {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: background-color 0.2s ease;
+            margin: 0;
+        }
+
+        .history-character-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .history-character-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .history-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .history-character-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--primary-light);
+            margin-bottom: 2px;
+        }
+
+        .history-timestamp {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .history-message {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 0.85rem;
+            line-height: 1.4;
+            padding-left: 0;
+            text-align: left;
+            margin-left: 46px;
+        }
+
+        .empty-history {
+            text-align: center;
+            padding: 40px 20px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .empty-history i {
+            font-size: 2.5rem;
+            margin-bottom: 16px;
+            color: var(--primary-light);
+            opacity: 0.8;
+        }
+
+        .empty-history p {
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+            letter-spacing: 0.3px;
+        }
+
+        .error-message {
+            text-align: center;
+            padding: 20px;
+            color: #ff4444;
+            background: rgba(255, 68, 68, 0.08);
+            border-radius: 12px;
+            margin: 20px;
+            border: 1px solid rgba(255, 68, 68, 0.2);
+            font-size: 0.95rem;
+            letter-spacing: 0.2px;
+        }
+
+        @media (max-width: 768px) {
+            .history-list {
+                padding: 8px;
+                gap: 6px;
+            }
+
+            .history-item {
+                padding: 10px;
+            }
+
+            .history-character-icon {
+                width: 32px;
+                height: 32px;
+            }
+
+            .history-message {
+                padding-left: 0;
+                margin-left: 42px;
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Add bold text style */
+        strong {
+            font-weight: bold;
+            color: #a8b3cf;
+        }
+
+        /* Style for chat toggle button */
+        .chat-toggle-btn {
+            background: rgba(124, 58, 237, 0.1);
+            border: 1px solid rgba(124, 58, 237, 0.2);
+            padding: 8px 16px;
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin: 12px 0;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+
+        .chat-toggle-btn:hover {
+            background: rgba(124, 58, 237, 0.15);
+            border-color: rgba(124, 58, 237, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .chat-toggle-btn:active {
+            transform: translateY(0);
+        }
+
+        .chat-toggle-btn i {
+            font-size: 0.85rem;
+            opacity: 0.9;
+            transition: transform 0.2s ease;
+        }
+
+        .chat-toggle-btn.active {
+            background: rgba(124, 58, 237, 0.15);
+            border-color: rgba(124, 58, 237, 0.3);
+        }
+
+        .chat-toggle-btn.active i {
+            transform: rotate(180deg);
+        }
+
+        .history-messages-container {
+            display: none;
+            margin-top: 8px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: left;
+        }
+
+        .history-messages-container.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .history-message {
+            margin-bottom: 12px;
+            text-align: left;
+        }
+
+        .history-message:last-child {
+            margin-bottom: 0;
+        }
+
+        .history-message-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .history-message {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 0.85rem;
+            line-height: 1.4;
+            text-align: left;
+            padding: 0;
+            margin: 0;
+        }
+
+        .history-item {
+            position: relative;
+        }
+
+        .history-message-count {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+            transition: all 0.2s ease;
+            display: block;
+        }
+
+        .history-item.delete-mode .history-message-count {
+            display: none;
+        }
+        
+        /* Add new styles for delete functionality */
+        .delete-history-btn {
+            background: none;
+            border: none;
+            color: #ff4d4d;
+            cursor: pointer;
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: auto;
+            transition: all 0.2s ease;
+        }
+
+        .delete-history-btn:hover {
+            color: #ff6666;
+        }
+
+        .history-checkbox {
+            display: none;
+            width: 18px;
+            height: 18px;
+            margin-right: 8px;
+            cursor: pointer;
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            z-index: 1;
+        }
+
+        .history-item.delete-mode .history-checkbox {
+            display: block;
+        }
+
+        .delete-controls {
+            display: none;
+            flex-direction: column;
+            align-items: flex-end;
+            padding: 0;
+            background: transparent;
+            border: none;
+            margin: 0;
+        }
+
+        .delete-controls.show {
+            display: flex;
+        }
+
+        .delete-controls-text {
+            color: #ff4d4d;
+            font-size: 14px;
+            margin-top: 20px;
+            align-self: center;
+        }
+
+        .delete-controls-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .delete-controls-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .delete-controls-btn.cancel {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        .delete-controls-btn.cancel:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .delete-controls-btn.confirm {
+            background: #ff4d4d;
+            color: #fff;
+        }
+
+        .delete-controls-btn.confirm:hover {
+            background: #ff6666;
+        }
+
+        /* Custom checkbox styles */
+        .history-checkbox {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(124, 58, 237, 0.5);
+            border-radius: 4px;
+            margin: 4px 0;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        .history-checkbox:checked {
+            background: #7C3AED;
+            border-color: #7C3AED;
+        }
+
+        .history-checkbox:checked::after {
+            content: '✓';
+            position: absolute;
+            color: white;
+            font-size: 14px;
+            left: 4px;
+            top: 0px;
+        }
+
+        .history-item.delete-mode .history-checkbox {
+            display: block;
+        }
+
+        /* Remove button styles */
+        .delete-history-btn {
+            background: rgba(124, 58, 237, 0.1);
+            color: #7C3AED;
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            transition: all 0.2s ease;
+            margin-bottom: 12px;
+        }
+
+        .delete-history-btn:hover {
+            background: rgba(124, 58, 237, 0.2);
+            border-color: rgba(124, 58, 237, 0.5);
+        }
+
+        .delete-history-btn i {
+            font-size: 13px;
+        }
+
+        /* Delete controls styles */
+        .delete-controls {
+            display: none;
+            align-items: flex-end;
+            justify-content: space-between;
+            padding: 0;
+            background: transparent;
+        }
+
+        .delete-controls.show {
+            display: flex;
+        }
+
+        .delete-controls-text {
+            color: #ff4d4d;
+            font-size: 14px;
+        }
+
+        .delete-controls-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .delete-controls-btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+        }
+
+        .delete-controls-btn.cancel {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        .delete-controls-btn.cancel:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .delete-controls-btn.confirm {
+            background: #7C3AED;
+            color: white;
+        }
+
+        .delete-controls-btn.confirm:hover {
+            background: #6D28D9;
+        }
+        .delete-controls {
+            display: none;
+            flex-direction: column;
+            align-items: flex-end;
+            padding: 0;
+            background: transparent;
+            border: none;
+            margin: 0;
+        }
+
+        .delete-controls.show {
+            display: flex;
+        }
+
+        .delete-controls-text {
+            color: #ff4d4d;
+            font-size: 14px;
+            margin-top: 20px;
+            align-self: center;
+            order: 2;
+        }
+
+        .delete-controls-buttons {
+            display: flex;
+            gap: 16px;
+            order: 1;
+        }
+    </style>
+</head>
+<body>
+    <!-- Add scroll-to-top target -->
+    <div id="top"></div>
+
+    <!-- Toast Container -->
+    <div class="toast-container"></div>
+
+    <!-- Insufficient Diamonds Modal -->
+    <div id="insufficientDiamondsModal" class="insufficient-diamonds-modal">
+        <div class="insufficient-diamonds-content">
+            <div class="insufficient-diamonds-header">
+                <i id="insufficientResourceIcon" class="fas fa-gem"></i>
+                <h2 id="insufficientResourceTitle">Not Enough Diamonds</h2>
+            </div>
+            <div class="insufficient-diamonds-body">
+                <p id="insufficientDiamondsMessage"></p>
+            </div>
+            <div class="insufficient-diamonds-footer">
+                <button class="insufficient-diamonds-button" onclick="hideInsufficientDiamondsModal()">Close</button>
+                <button class="insufficient-diamonds-button primary" onclick="handleBuyMoreClick()">Buy More</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Character Unlock Animation Overlay -->
+    <div class="character-unlock-overlay">
+        <div class="character-unlock-content">
+            <i class="fas fa-unlock unlock-icon"></i>
+            <h2 class="character-unlock-title">New Character Unlocked!</h2>
+            <p class="character-unlock-subtitle">You've unlocked <span class="unlocked-character-name"></span></p>
+            <button class="continue-button" onclick="closeUnlockOverlay()">
+                Continue
+                <i class="fas fa-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Reward Success Overlay -->
+    <div class="reward-success-overlay">
+        <div class="reward-success-content">
+            <div class="messages-icon">🎁</div>
+            <h2>Congratulations!</h2>
+            <p id="rewardSuccessMessage">You've earned <strong>50 FREE messages</strong> to chat with your favorite characters!</p>
+            <div class="invite-more">
+                Share with friends to earn more rewards!
+            </div>
+            <button class="continue-button" onclick="closeRewardSuccess()">
+                Continue <i class="fas fa-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- App Header -->
+    <header>
+        <div class="user-info">
+            <div class="greeting" id="greeting">Anime AI Voice</div>
+            <button class="refer-button" onclick="showReferralModal()">
+                <i class="fas fa-gift"></i> Refer
+            </button>
+        </div>
+    </header>
+
+    <!-- Profile Section -->
+    <div class="profile-section" id="profileSection">
+        <div class="profile-header">
+            <div class="profile-avatar">
+                <i class="fas fa-user"></i>
+            </div>
+            <h1 class="profile-name" id="profileNameBig"></h1>
+            <p class="profile-email" id="profileEmail"></p>
+        </div>
+
+        <div class="profile-stats">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value" id="messages-count-big">-</div>
+                    <div class="stat-label">Messages Left Today</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="diamonds-count-big"><i class="fas fa-gem"></i> -</div>
+                    <div class="stat-label">Diamonds</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="unlocked-count-big">-</div>
+                    <div class="stat-label">Characters</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="plan-type-big">-</div>
+                    <div class="stat-label">Plan</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="profile-actions">
+            <button class="profile-button danger" onclick="signOut()">Sign Out</button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Stats -->
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-value" id="messages-count">-</div>
+                <div class="stat-label">Messages Left Today</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="diamonds-count"><i class="fas fa-gem"></i> -</div>
+                <div class="stat-label">Diamonds</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="plan-type">-</div>
+                <div class="stat-label">Current Plan</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="unlocked-count">-</div>
+                <div class="stat-label">Characters</div>
+            </div>
+        </div>
+
+        <!-- Daily Claim Section -->
+        <div class="claim-section">
+            <div class="claim-container">
+                <div class="claim-timer" id="claimTimer">Next claim available in: --:--</div>
+                <button class="claim-button" id="claimButton" disabled>
+                    <i class="fas fa-gift"></i>
+                    Claim Daily Messages
+                </button>
+            </div>
+        </div>
+
+        <!-- Premium Banner -->
+        <div class="premium-banner" id="premiumBanner">
+            <button class="close-premium" onclick="hidePremiumBanner()">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="premium-banner-content">
+                <h3>Upgrade to Ultimate!</h3>
+                <p>Get access to all characters and more messages</p>
+            </div>
+            <button class="upgrade-btn" onclick="window.location.href='subscription.html'">Upgrade</button>
+        </div>
+
+        <!-- Characters Section -->
+        <div class="section-title">
+            <i class="fas fa-users"></i>
+            <span>Your Unlocked Characters</span>
+        </div>
+        <div class="characters-grid" id="charactersGrid">
+            <!-- Unlocked characters will be loaded here -->
+        </div>
+
+        <!-- Locked Characters Section -->
+        <div class="section-title" style="margin-top: 2rem; display: none;" id="lockedCharactersSection">
+            <i class="fas fa-lock"></i>
+            <span>Meet More Characters</span>
+        </div>
+        <p class="unlock-info" style="display: none;">
+            <i class="fas fa-gem"></i>
+            <span>Spend 10 diamonds to unlock new characters</span>
+        </p>
+        <div class="characters-grid" id="lockedCharactersGrid" style="display: none;">
+            <!-- Locked characters will be loaded here -->
+        </div>
+    </main>
+
+    <!-- History Section -->
+    <section id="history-section" class="section" style="display: none;">
+        <div class="section-header">
+            <h2>Call History</h2>
+        </div>
+        <div id="history-list" class="history-list">
+            <!-- History items will be dynamically added here -->
+        </div>
+    </section>
+
+    <!-- Character Info Modal -->
+    <div id="characterInfoModal" class="character-info-modal">
+        <div class="character-info-content">
+            <button class="character-info-close" onclick="hideCharacterInfo()">&times;</button>
+            <div class="character-info-header">
+                <img id="characterInfoImg" src="" alt="" class="character-info-img">
+            </div>
+            <div class="character-info-details">
+                <h2 id="characterInfoName" class="character-info-name"></h2>
+                <div id="characterInfoDescription" class="character-description"></div>
+                <div id="characterInfoTraits" class="character-info-traits"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Referral Modal -->
+    <div id="referralModal" class="referral-modal">
+        <div class="referral-modal-content">
+            <button class="close-referral-modal" onclick="hideReferralModal()">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="gift-icon">
+                <i class="fas fa-gift"></i>
+            </div>
+            <h2 class="referral-modal-title">Invite Friends & Earn!</h2>
+            <p class="referral-description">
+                Share your link and start earning free messages!
+            </p>
+            <div class="referral-link-container">
+                <input type="text" id="referralLink" readonly>
+                <button onclick="copyReferralLink()" class="copy-button">
+                    <i class="fas fa-copy"></i>
+                    <div class="copy-indicator">Copied!</div>
+                </button>
+            </div>
+            <button id="claimRewardButton" class="claim-reward-button" disabled onclick="claimReferralReward()">
+                Claim Reward (0 pending)
+            </button>
+            <div class="referral-steps">
+                <div class="referral-step">
+                    <span class="step-number">1</span>
+                    <span class="step-text">Share your unique referral link with friends</span>
+                </div>
+                <div class="referral-step">
+                    <span class="step-number">2</span>
+                    <span class="step-text">Friends sign up using your link</span>
+                </div>
+                <div class="referral-step">
+                    <span class="step-number">3</span>
+                    <span class="step-text">Get 50 free messages for each successful referral!</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <div class="nav-item" onclick="switchSection('home')">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </div>
+        <div class="nav-item" onclick="switchSection('unlock')">
+            <i class="fas fa-unlock-alt"></i>
+            <span>Add Voice</span>
+        </div>
+        <div class="nav-item" onclick="switchSection('history')">
+            <i class="fas fa-history"></i>
+            <span>History</span>
+        </div>
+        <div class="nav-item" onclick="switchSection('profile')">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+        </div>
+    </nav>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="hideSettings()">&times;</button>
+            <h2 class="modal-title">Settings</h2>
+            <button class="btn" onclick="logout()" style="width: 100%;">Logout</button>
+        </div>
+    </div>
+
+    <!-- Upgrade Modal -->
+    <div id="upgradeModal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="hideUpgradeModal()">&times;</button>
+            <h2 class="modal-title">Choose Your Plan</h2>
+            
+            <div class="plan-option">
+                <div class="plan-name">Basic Plan</div>
+                <div class="plan-price">$7.99/month</div>
+                <div class="plan-features">
+                    • 120 messages of chat time<br>
+                    • 100 diamonds per month<br>
+                    • Save up to 3 conversations
+                </div>
+            </div>
+
+            <div class="plan-option">
+                <div class="plan-name">Premium Plan</div>
+                <div class="plan-price">$14.99/month</div>
+                <div class="plan-features">
+                    • 300 messages of chat time<br>
+                    • 300 diamonds per month<br>
+                    • Unlimited saved conversations<br>
+                    • Priority support
+                </div>
+            </div>
+
+            <button class="btn" onclick="upgradePlan('premium')" style="width: 100%; margin-top: 16px;">
+                Get Premium
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Initialize userData
+        let userData = {
+            diamonds: "-",
+            unlockedCharacters: []
+        };
+
+        const characters = [
+            { 
+                name: 'Naruto',
+                fullName: 'Naruto Uzumaki',
+                image: 'anime images/naruto.png',
+                description: 'Energetic, determined, friendly, never gives up.',
+                link: 'naruto.html'
+            },
+            { 
+                name: 'Sasuke',
+                fullName: 'Sasuke Uchiha',
+                image: 'anime images/sasuke.png',
+                description: 'Cold, arrogant, dismissive, doesn\'t care about others.',
+                link: 'sasuke.html'
+            },
+            { 
+                name: 'Gojo',
+                fullName: 'Satoru Gojo',
+                image: 'anime images/gojo.png',
+                description: 'The strongest jujutsu sorcerer, known for his powerful techniques and charismatic personality.',
+                link: 'gojo.html'
+            },
+            { 
+                name: 'Shinobu',
+                fullName: 'Shinobu Kocho',
+                image: 'anime images/shinobu.png',
+                description: 'The elegant Insect Hashira of the Demon Slayer Corps, skilled in poison techniques.',
+                link: 'shinobu.html'
+            },
+            { 
+                name: 'Mitsuri',
+                fullName: 'Mitsuri Kanroji',
+                image: 'anime images/mitsuri.png',
+                description: 'The charming Love Hashira of the Demon Slayer Corps, known for her unique fighting style.',
+                link: 'mitsuri.html'
+            },
+            {
+                name: 'Bakugo',
+                fullName: 'Bakugo Katsuki',
+                image: 'anime images/bakugo.png',
+                description: 'The explosive hero from <span class="highlight">My Hero Academia</span> with attitude to spare! Try to keep up with his intense personality - if you dare. Just don\'t call him by his first name!',
+                link: 'bakugo.html'
+            },
+            {
+                name: 'Robin',
+                fullName: 'Nico Robin',
+                image: 'anime images/robin.png',
+                description: 'The mysterious archaeologist of the Straw Hat Pirates',
+                link: 'robin.html'
+            },
+            {
+                name: 'Zoro',
+                fullName: 'Roronoa Zoro',
+                image: 'anime images/zoro.png',
+                description: 'The powerful swordsman of the Straw Hat Pirates',
+                link: 'zoro.html'
+            }
+        ];
+
+        // Function to update stats display
+        async function updateStats() {
+            try {
+                const response = await fetch('/api/auth/me');
+                const userData = await response.json();
+                
+                // Update main stats
+                document.getElementById('messages-count').textContent = userData.messagesLeft || 0;
+                document.getElementById('diamonds-count').innerHTML = `<i class="fas fa-gem"></i> ${userData.diamonds || 0}`;
+                document.getElementById('unlocked-count').textContent = userData.unlockedCharacters?.length || 0;
+                
+                // Update profile stats
+                document.getElementById('messages-count-big').textContent = userData.messagesLeft || 0;
+                document.getElementById('diamonds-count-big').innerHTML = `<i class="fas fa-gem"></i> ${userData.diamonds || 0}`;
+                document.getElementById('unlocked-count-big').textContent = userData.unlockedCharacters?.length || 0;
+                
+                // Update plan type in both places
+                const plan = userData.currentPlan || '-';
+                const planDisplay = plan === '-' ? '-' : plan.charAt(0).toUpperCase() + plan.slice(1);
+                document.getElementById('plan-type').textContent = planDisplay;
+                document.getElementById('plan-type-big').textContent = planDisplay;
+                
+                // Hide "Meet More Characters" section only for Ultimate plan users
+                const lockedSection = document.getElementById('lockedCharactersSection');
+                const unlockInfo = document.querySelector('.unlock-info');
+                const lockedGrid = document.getElementById('lockedCharactersGrid');
+                
+                if (planDisplay.toLowerCase() === 'ultimate') {
+                    lockedSection.style.display = 'none';
+                    unlockInfo.style.display = 'none';
+                    lockedGrid.style.display = 'none';
+                } else {
+                    lockedSection.style.display = 'block';
+                    unlockInfo.style.display = 'block';
+                    lockedGrid.style.display = 'grid';
+                }
+            } catch (error) {
+                console.error('Error updating stats:', error);
+            }
+        }
+
+        // Function to update call history
+        async function updateHistorySection() {
+            const historySection = document.getElementById('history-section');
+            const historyList = historySection.querySelector('.history-list');
+            
+            try {
+                const response = await fetch('/api/call-history', {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch call history');
+                }
+
+                const data = await response.json();
+                const calls = data.calls;
+                
+                // Clear existing history
+                historyList.innerHTML = '';
+                
+                if (!calls || calls.length === 0) {
+                    const emptyMessage = document.createElement('div');
+                    emptyMessage.className = 'empty-history';
+                    emptyMessage.innerHTML = `
+                        <div style="text-align: center; padding: 32px 20px; color: rgba(255, 255, 255, 0.7);">
+                            <i class="fas fa-history" style="font-size: 2rem; margin-bottom: 16px;"></i>
+                            <p style="font-size: 1.1rem; margin-bottom: 8px;">No call history yet</p>
+                            <p style="font-size: 0.9rem;">Start a conversation with your favorite characters!</p>
+                        </div>
+                    `;
+                    historyList.appendChild(emptyMessage);
+                    return;
+                }
+                
+                // Add delete button and controls
+                const deleteButton = document.createElement('button');
+                deleteButton.className = 'delete-history-btn';
+                deleteButton.innerHTML = '<i class="fas fa-trash"></i>Clear History';
+                historyList.appendChild(deleteButton);
+
+                const deleteControls = document.createElement('div');
+                deleteControls.className = 'delete-controls';
+                deleteControls.style.padding = '0';
+                deleteControls.innerHTML = `
+                    <div class="delete-controls-text" style="width: 100%; padding: 8px 0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                            <div style="padding: 4px 0 4px 12px;">Select items to remove</div>
+                            <button id="select-all-btn" style="background: none; border: none; color: var(--primary-light); cursor: pointer; padding: 4px 12px 4px 0;">
+                                Select All
+                            </button>
+                        </div>
+                    </div>
+                    <div class="delete-controls-buttons">
+                        <button class="delete-controls-btn cancel">Cancel</button>
+                        <button class="delete-controls-btn confirm">Remove Selected</button>
+                    </div>
+                `;
+                historyList.appendChild(deleteControls);
+                
+                // Add each history item
+                calls.forEach(call => {
+                    const historyItem = document.createElement('div');
+                    historyItem.className = 'history-item';
+                    historyItem.dataset.id = call.id; // Make sure your call objects have an id field
+                    historyItem.dataset.timestamp = call.timestamp; // Store the timestamp for deletion
+                    
+                    // Add message count before character info
+                    const messageCount = document.createElement('div');
+                    messageCount.className = 'history-message-count';
+                    const count = call.messages ? Math.max(0, call.messages.length - 1) : 0;
+                    messageCount.textContent = `${count} message${count !== 1 ? 's' : ''} used`;
+                    historyItem.appendChild(messageCount);
+                    
+                    // Add checkbox for delete mode
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.className = 'history-checkbox';
+                    historyItem.appendChild(checkbox);
+                    
+                    const characterInfo = document.createElement('div');
+                    characterInfo.className = 'history-character-info';
+                    
+                    const characterIcon = document.createElement('img');
+                    characterIcon.className = 'history-character-icon';
+                    characterIcon.src = `anime images/${call.character}.png`;
+                    characterIcon.alt = call.character;
+                    
+                    const historyInfo = document.createElement('div');
+                    historyInfo.className = 'history-info';
+                    
+                    const characterName = document.createElement('div');
+                    characterName.className = 'history-character-name';
+                    characterName.textContent = call.character;
+                    
+                    const timestamp = document.createElement('div');
+                    timestamp.className = 'history-timestamp';
+                    timestamp.textContent = formatDate(call.timestamp);
+                    
+                    historyInfo.appendChild(characterName);
+                    historyInfo.appendChild(timestamp);
+                    
+                    characterInfo.appendChild(characterIcon);
+                    characterInfo.appendChild(historyInfo);
+                    
+                    const messagesContainer = document.createElement('div');
+                    messagesContainer.className = 'history-messages-container';
+
+                    // Add toggle button
+                    const toggleButton = document.createElement('button');
+                    toggleButton.className = 'chat-toggle-btn';
+                    toggleButton.innerHTML = '<i class="fas fa-chevron-down"></i>See chat';
+                    
+                    // Handle toggle click
+                    toggleButton.onclick = function(e) {
+                        e.stopPropagation(); // Prevent click from bubbling to document
+                        
+                        // Close any other open conversations
+                        document.querySelectorAll('.history-messages-container.show').forEach(container => {
+                            if (container !== messagesContainer) {
+                                container.classList.remove('show');
+                                container.previousElementSibling.classList.remove('active');
+                                container.previousElementSibling.innerHTML = '<i class="fas fa-chevron-down"></i>See chat';
+                            }
+                        });
+                        
+                        messagesContainer.classList.toggle('show');
+                        toggleButton.classList.toggle('active');
+                        toggleButton.innerHTML = messagesContainer.classList.contains('show') 
+                            ? '<i class="fas fa-chevron-down"></i>Hide chat'
+                            : '<i class="fas fa-chevron-down"></i>See chat';
+                    };
+
+                    // Add each message in the conversation
+                    call.messages.forEach(msg => {
+                        const messageWrapper = document.createElement('div');
+                        messageWrapper.className = 'history-message-wrapper';
+
+                        const userMessage = document.createElement('div');
+                        userMessage.className = 'history-message user-message';
+                        userMessage.innerHTML = msg.userMessage;
+
+                        const characterMessage = document.createElement('div');
+                        characterMessage.className = 'history-message character-message';
+                        characterMessage.innerHTML = msg.characterResponse;
+
+                        messageWrapper.appendChild(userMessage);
+                        messageWrapper.appendChild(characterMessage);
+                        messagesContainer.appendChild(messageWrapper);
+                    });
+                    
+                    historyItem.appendChild(characterInfo);
+                    historyItem.appendChild(toggleButton);
+                    historyItem.appendChild(messagesContainer);
+                    
+                    historyList.appendChild(historyItem);
+                });
+            } catch (error) {
+                console.error('Error fetching call history:', error);
+                const errorMessage = document.createElement('div');
+                errorMessage.className = 'error-message';
+                errorMessage.textContent = 'Failed to load call history. Please try again later.';
+                historyList.innerHTML = '';
+                historyList.appendChild(errorMessage);
+            }
+        }
+
+        async function logout() {
+            try {
+                const response = await fetch('/api/auth/logout', {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    window.location.href = '/index.html';
+                } else {
+                    throw new Error('Logout failed');
+                }
+            } catch (error) {
+                console.error('Error signing out:', error);
+                alert('Failed to sign out. Please try again.');
+            }
+        }
+
+        // Update navigation
+        function updateGreetingVisibility(section) {
+            const greeting = document.getElementById('greeting');
+            const referButton = document.querySelector('.refer-button');
+            
+            if (section === 'history') {
+                greeting.style.display = 'none';
+                referButton.style.display = 'none';
+            } else {
+                greeting.style.display = 'block';
+                referButton.style.display = 'block';
+            }
+        }
+
+        function switchSection(section) {
+            const profileSection = document.getElementById('profileSection');
+            const mainContent = document.querySelector('.main-content');
+            const historySection = document.getElementById('history-section');
+            const navItems = document.querySelectorAll('.nav-item');
+
+            // Reset all sections
+            profileSection.classList.remove('active');
+            mainContent.style.display = 'none';
+            historySection.style.display = 'none';
+            navItems.forEach(item => item.classList.remove('active'));
+
+            // Update greeting visibility
+            updateGreetingVisibility(section);
+
+            if (section === 'home') {
+                mainContent.style.display = 'block';
+                navItems[0].classList.add('active');
+                // Add a small delay to ensure proper scrolling
+                setTimeout(() => {
+                    window.scrollTo({
+                        top: 0,
+                        behavior: 'smooth'
+                    });
+                }, 100);
+            } else if (section === 'unlock') {
+                mainContent.style.display = 'block';
+                navItems[1].classList.add('active');
+                // Add a small delay to ensure the section is visible before scrolling
+                setTimeout(() => {
+                    const availableToUnlockSection = document.getElementById('lockedCharactersSection');
+                    if (availableToUnlockSection) {
+                        availableToUnlockSection.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                }, 100);
+            } else if (section === 'history') {
+                historySection.style.display = 'block';
+                updateHistorySection(); // Load history data
+                navItems[2].classList.add('active');
+                historySection.classList.add('history-section-active');
+            } else if (section === 'profile') {
+                profileSection.classList.add('active');
+                navItems[3].classList.add('active');
+            }
+
+            isManualScroll = true;
+        }
+
+        // Toast and Modal Functions
+        let currentToast = null;
+
+        function showToast(message, type = 'success', showButtons = false) {
+            // Check if there's already a toast with the same message
+            if (currentToast && currentToast.querySelector('.toast-message').textContent === message) {
+                return; // Don't show duplicate toast
+            }
+
+            const toastContainer = document.querySelector('.toast-container');
+            
+            // Remove existing toast with animation
+            if (currentToast) {
+                currentToast.classList.remove('show');
+                const oldToast = currentToast; // Store reference to old toast
+                setTimeout(() => {
+                    if (oldToast && oldToast.parentNode) {
+                        toastContainer.removeChild(oldToast);
+                    }
+                }, 300);
+            }
+
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+
+            // Create content wrapper
+            const content = document.createElement('div');
+            content.className = 'toast-content';
+
+            // Add icon based on type
+            const icon = document.createElement('div');
+            icon.className = 'toast-icon';
+            let iconClass = 'fa-check-circle';
+            if (type === 'error') {
+                iconClass = 'fa-times-circle';
+            } else if (type === 'info') {
+                iconClass = 'fa-info-circle';
+            }
+            icon.innerHTML = `<i class="fas ${iconClass}"></i>`;
+            content.appendChild(icon);
+
+            // Add message
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'toast-message';
+            messageDiv.textContent = message;
+            content.appendChild(messageDiv);
+
+            toast.appendChild(content);
+
+            // Add buttons if showButtons is true
+            if (showButtons) {
+                const buttonsDiv = document.createElement('div');
+                buttonsDiv.className = 'toast-buttons';
+
+                const laterButton = document.createElement('button');
+                laterButton.className = 'toast-button';
+                laterButton.textContent = 'Later';
+                laterButton.onclick = () => {
+                    toast.classList.remove('show');
+                    setTimeout(() => {
+                        if (toast.parentNode) {
+                            toastContainer.removeChild(toast);
+                        }
+                        if (currentToast === toast) {
+                            currentToast = null;
+                        }
+                    }, 300);
+                };
+
+                const claimButton = document.createElement('button');
+                claimButton.className = 'toast-button claim';
+                claimButton.textContent = 'Claim Now';
+                claimButton.onclick = () => {
+                    showReferralModal();
+                    toast.classList.remove('show');
+                    setTimeout(() => {
+                        if (toast.parentNode) {
+                            toastContainer.removeChild(toast);
+                        }
+                        if (currentToast === toast) {
+                            currentToast = null;
+                        }
+                    }, 300);
+                };
+
+                buttonsDiv.appendChild(laterButton);
+                buttonsDiv.appendChild(claimButton);
+                toast.appendChild(buttonsDiv);
+            }
+
+            // Add progress bar
+            const progress = document.createElement('div');
+            progress.className = 'toast-progress';
+            const progressBar = document.createElement('div');
+            progressBar.className = 'toast-progress-bar';
+            progress.appendChild(progressBar);
+            toast.appendChild(progress);
+            
+            toastContainer.appendChild(toast);
+            currentToast = toast;
+            
+            // Trigger reflow to ensure animation plays
+            void toast.offsetWidth;
+            
+            // Add show class to start animation
+            requestAnimationFrame(() => {
+                toast.classList.add('show');
+            });
+
+            // Auto-remove after 10 seconds
+            setTimeout(() => {
+                if (toast === currentToast) {  // Only remove if it's still the current toast
+                    toast.classList.remove('show');
+                    setTimeout(() => {
+                        if (toast.parentNode) {
+                            toastContainer.removeChild(toast);
+                        }
+                        if (currentToast === toast) {
+                            currentToast = null;
+                        }
+                    }, 300); // Wait for animation to complete before removing
+                }
+            }, 10000);
+        }
+
+        function showInsufficientDiamondsModal(message, type = 'diamonds') {
+            const icon = document.getElementById('insufficientResourceIcon');
+            const title = document.getElementById('insufficientResourceTitle');
+            
+            if (type === 'messages') {
+                icon.className = 'fas fa-comment';
+                title.textContent = 'No Messages Left';
+            } else {
+                icon.className = 'fas fa-gem';
+                title.textContent = 'Not Enough Diamonds';
+            }
+            
+            document.getElementById('insufficientDiamondsMessage').textContent = message;
+            document.getElementById('insufficientDiamondsModal').style.display = 'flex';
+        }
+
+        function hideInsufficientDiamondsModal() {
+            document.getElementById('insufficientDiamondsModal').style.display = 'none';
+        }
+
+        function handleBuyMoreClick() {
+            showToast('Buy more diamonds feature coming soon!', 'error');
+            hideInsufficientDiamondsModal();
+        }
+
+        async function unlockCharacter(characterName) {
+            // Find and disable the unlock button using data attribute
+            const unlockButton = document.querySelector(`.unlock-button[data-character="${characterName}"]`);
+            if (unlockButton) {
+                unlockButton.classList.add('loading');
+                const originalContent = unlockButton.innerHTML;
+                unlockButton.dataset.originalContent = originalContent; // Save original content
+            }
+
+            try {
+                const response = await fetch('/api/user/unlock-character', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ character: characterName })
+                });
+
+                if (!response.ok) {
+                    const data = await response.json();
+                    if (data.message && data.message.includes('Not enough diamonds')) {
+                        showInsufficientDiamondsModal(data.message);
+                        return;
+                    }
+                    throw new Error(data.message || 'Failed to unlock character');
+                }
+
+                const data = await response.json();
+                
+                // Update user data with the new values
+                userData = {
+                    diamonds: data.user.diamonds,
+                    unlockedCharacters: data.user.unlockedCharacters,
+                    messagesTotal: data.user.messagesTotal,
+                    currentPlan: data.user.currentPlan,
+                    uid: data.user._id
+                };
+
+                // Update UI
+                updateStats();
+                
+                // Update last known rewards count
+                const lastKnownCount = parseInt(localStorage.getItem('lastKnownRewardsCount') || '0');
+                
+                // Load characters
+                await Promise.all([
+                    loadUnlockedCharacters(),
+                    loadLockedCharacters()
+                ]);
+                
+                // Get character info for the animation
+                const character = getCharacterInfo(characterName);
+                
+                // Show unlock animation with confetti
+                showUnlockAnimation(characterName);
+            } catch (error) {
+                console.error('Error unlocking character:', error);
+            } finally {
+                // Remove loading state from button and restore original content
+                if (unlockButton) {
+                    unlockButton.classList.remove('loading');
+                    if (unlockButton.dataset.originalContent) {
+                        unlockButton.innerHTML = unlockButton.dataset.originalContent;
+                    }
+                }
+            }
+        }
+
+        // Add click outside listener for character info modal
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('characterInfoModal');
+            if (!modal) return;
+
+            const modalContent = modal.querySelector('.character-info-content');
+            if (!modalContent) return;
+            
+            // Check if the modal is visible and the click is outside the content
+            if (modal.style.display === 'flex' && !modalContent.contains(event.target) && !event.target.closest('.info-button')) {
+                hideCharacterInfo();
+            }
+        });
+
+        // Add scroll detection for navigation
+        let isManualScroll = false;
+        let scrollTimeout;
+        
+        window.addEventListener('scroll', function() {
+            if (isManualScroll) {
+                isManualScroll = false;
+                return;
+            }
+
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(function() {
+                const unlockSection = document.getElementById('lockedCharactersSection');
+                const historySection = document.getElementById('history-section');
+                const navItems = document.querySelectorAll('.nav-item');
+
+                // Reset all sections
+                profileSection.classList.remove('active');
+                mainContent.style.display = 'none';
+                historySection.style.display = 'none';
+                navItems.forEach(item => item.classList.remove('active'));
+
+                // Update greeting visibility
+                updateGreetingVisibility(section);
+
+                if (historySection && historySection.style.display === 'block') {
+                    navItems[2].classList.add('active');
+                } else if (scrollPosition >= unlockSectionTop) {
+                    navItems[1].classList.add('active');
+                } else {
+                    navItems[0].classList.add('active');
+                }
+            }, 100);
+        });
+
+        // Check auth on page load
+        document.addEventListener('DOMContentLoaded', async function() {
+            await checkAuth();
+            await refreshUserData(); // Initial load of user data
+        });
+
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/auth/me', {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        // Session expired or invalid
+                        window.location.href = '/index.html';
+                        return;
+                    }
+                    throw new Error('Failed to fetch user data');
+                }
+
+                const user = await response.json();
+                console.log('User data received:', user); // Debug log
+                
+                // Ensure diamonds has a default value if undefined
+                userData = {
+                    diamonds: typeof user.diamonds === 'number' ? user.diamonds : 20,
+                    unlockedCharacters: user.unlockedCharacters || [],
+                    messagesTotal: user.messagesTotal || 30,
+                    currentPlan: (user.currentPlan || 'free').toLowerCase(), // Ensure lowercase
+                    name: user.name || 'User',
+                    email: user.email || '',
+                    uid: user._id || ''
+                };
+
+                // Update profile info
+                document.getElementById('profileNameBig').textContent = userData.name;
+                document.getElementById('profileEmail').textContent = userData.email;
+                
+                // Update stats display
+                updateStats();
+                
+                // Update last known rewards count
+                const lastKnownCount = parseInt(localStorage.getItem('lastKnownRewardsCount') || '0');
+                
+                // Load characters
+                await Promise.all([
+                    loadUnlockedCharacters(),
+                    loadLockedCharacters()
+                ]);
+                
+                // If user is on ultimate plan, unlock all characters
+                if (userData.currentPlan === 'ultimate') {
+                    hidePremiumBanner();
+                    document.getElementById('lockedCharactersSection').style.display = 'none';
+                    document.querySelector('.nav-item[onclick="switchSection(\'unlock\')"]').style.display = 'none';
+                    userData.unlockedCharacters = characters.map(c => c.name);
+                }
+            } catch (error) {
+                console.error('Auth check error:', error);
+                window.location.href = '/index.html';
+            }
+        }
+
+        async function refreshUserData() {
+            try {
+                // Set loading states
+                document.getElementById('messages-count').textContent = '-';
+                document.getElementById('diamonds-count').textContent = '-';
+                document.getElementById('unlocked-count').textContent = '-';
+                document.getElementById('plan-type').textContent = '-';
+                
+                const response = await fetch('/api/auth/me');
+                const data = await response.json();
+                
+                // Update user data
+                userData = {
+                    ...userData,
+                    diamonds: typeof data.diamonds === 'number' ? data.diamonds : 20,
+                    unlockedCharacters: data.unlockedCharacters || [],
+                    messagesTotal: data.messagesTotal || 30,
+                    currentPlan: (data.currentPlan || 'free').toLowerCase(), // Ensure lowercase
+                    name: data.name || 'User',
+                    email: data.email || '',
+                    uid: data._id || ''
+                };
+
+                // If user is on ultimate plan, unlock all characters
+                if (userData.currentPlan === 'ultimate') {
+                    userData.unlockedCharacters = characters.map(c => c.name);
+                    hidePremiumBanner(); // Hide premium banner for ultimate users
+                }
+
+                // Update UI elements
+                updateStats();
+                await Promise.all([
+                    loadUnlockedCharacters(),
+                    loadLockedCharacters()
+                ]);
+            } catch (error) {
+                console.error('Error refreshing user data:', error);
+                // Don't redirect on refresh errors, just log them
+            }
+        }
+
+        function hidePremiumBanner() {
+            const banner = document.getElementById('premiumBanner');
+            banner.classList.add('hiding');
+            // Remove the element after animation completes
+            setTimeout(() => {
+                banner.style.display = 'none';
+            }, 500);
+        }
+
+        // Profile functions
+        function toggleProfile() {
+            const profileSection = document.getElementById('profileSection');
+            profileSection.classList.toggle('active');
+            
+            // Update profile info - extract username from greeting
+            const greetingText = document.getElementById('greeting').textContent;
+            const userName = greetingText.replace('Hello, ', '').replace('!', '');
+            
+            document.getElementById('profileNameBig').textContent = userData.name;
+            document.getElementById('profileEmail').textContent = userData.email;
+        }
+
+        async function signOut() {
+            try {
+                const response = await fetch('/api/auth/logout', {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    window.location.href = '/index.html';
+                } else {
+                    throw new Error('Logout failed');
+                }
+            } catch (error) {
+                console.error('Error signing out:', error);
+                alert('Failed to sign out. Please try again.');
+            }
+        }
+
+        // Update navigation
+        function updateGreetingVisibility(section) {
+            const greeting = document.getElementById('greeting');
+            const referButton = document.querySelector('.refer-button');
+            
+            if (section === 'history') {
+                greeting.style.display = 'none';
+                referButton.style.display = 'none';
+            } else {
+                greeting.style.display = 'block';
+                referButton.style.display = 'block';
+            }
+        }
+
+        function switchSection(section) {
+            const profileSection = document.getElementById('profileSection');
+            const mainContent = document.querySelector('.main-content');
+            const historySection = document.getElementById('history-section');
+            const navItems = document.querySelectorAll('.nav-item');
+
+            // Reset all sections
+            profileSection.classList.remove('active');
+            mainContent.style.display = 'none';
+            historySection.style.display = 'none';
+            navItems.forEach(item => item.classList.remove('active'));
+
+            // Update greeting visibility
+            updateGreetingVisibility(section);
+
+            if (section === 'home') {
+                mainContent.style.display = 'block';
+                navItems[0].classList.add('active');
+                // Add a small delay to ensure proper scrolling
+                setTimeout(() => {
+                    window.scrollTo({
+                        top: 0,
+                        behavior: 'smooth'
+                    });
+                }, 100);
+            } else if (section === 'unlock') {
+                mainContent.style.display = 'block';
+                navItems[1].classList.add('active');
+                // Add a small delay to ensure the section is visible before scrolling
+                setTimeout(() => {
+                    const availableToUnlockSection = document.getElementById('lockedCharactersSection');
+                    if (availableToUnlockSection) {
+                        availableToUnlockSection.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                }, 100);
+            } else if (section === 'history') {
+                historySection.style.display = 'block';
+                updateHistorySection(); // Load history data
+                navItems[2].classList.add('active');
+                historySection.classList.add('history-section-active');
+            } else if (section === 'profile') {
+                profileSection.classList.add('active');
+                navItems[3].classList.add('active');
+            }
+
+            isManualScroll = true;
+        }
+
+        // Function to create character card
+        function createCharacterCard(character, isUnlocked = false) {
+            const card = document.createElement('div');
+            card.className = 'character-card';
+            
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'character-name';
+            if (!isUnlocked) {
+                const lockIcon = document.createElement('i');
+                lockIcon.className = 'fas fa-lock lock-icon';
+                nameDiv.appendChild(lockIcon);
+            }
+            const nameText = document.createTextNode(character.fullName || character.name);
+            nameDiv.appendChild(nameText);
+            
+            const imageContainer = document.createElement('div');
+            imageContainer.className = 'model-image-container';
+            
+            const img = document.createElement('img');
+            img.src = character.image;
+            img.alt = character.fullName || character.name;
+            img.className = 'character-img';
+            
+            const infoButton = document.createElement('button');
+            infoButton.className = 'info-button';
+            infoButton.innerHTML = '<i class="fas fa-info-circle"></i> Info';
+            infoButton.onclick = () => showCharacterInfo(character);
+            
+            const actionButton = document.createElement(isUnlocked ? 'a' : 'button');
+            actionButton.className = isUnlocked ? 'call-button' : 'unlock-button';
+            
+            if (isUnlocked) {
+                actionButton.href = character.link;
+                actionButton.onclick = function(e) {
+                    // Get latest messages count from the display
+                    const messagesLeft = parseInt(document.getElementById('messages-count').textContent) || 0;
+                    
+                    if (messagesLeft <= 0) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        showInsufficientDiamondsModal('No messages remaining. Purchase more to continue chatting!', 'messages');
+                        return false;
+                    }
+                };
+                actionButton.innerHTML = '<i class="fas fa-phone"></i>Call Now';
+            } else {
+                actionButton.innerHTML = '<i class="fas fa-gem"></i>10 Unlock';
+                actionButton.dataset.character = character.name; // Add data attribute for character name
+                actionButton.onclick = () => unlockCharacter(character.name);
+            }
+            
+            imageContainer.appendChild(img);
+            card.appendChild(nameDiv);
+            card.appendChild(imageContainer);
+            card.appendChild(infoButton);
+            card.appendChild(actionButton);
+            
+            return card;
+        }
+
+        function showCharacterInfo(character) {
+            const modal = document.getElementById('characterInfoModal');
+            const img = document.getElementById('characterInfoImg');
+            const name = document.getElementById('characterInfoName');
+            const description = document.getElementById('characterInfoDescription');
+            const traits = document.getElementById('characterInfoTraits');
+
+            img.src = character.image;
+            img.alt = character.fullName || character.name;
+            name.textContent = character.fullName || character.name;
+            
+            // Set character description and traits based on the character
+            const characterInfo = getCharacterInfo(character.name);
+            description.innerHTML = characterInfo.description; // Using innerHTML to render HTML tags
+            
+            // Clear and add new trait tags
+            traits.innerHTML = '<span style="color: var(--primary-light);">Personality:</span> ' + characterInfo.traits;
+
+            modal.style.display = 'flex';
+        }
+
+        function hideCharacterInfo() {
+            const modal = document.getElementById('characterInfoModal');
+            modal.style.display = 'none';
+        }
+
+        function getCharacterInfo(characterName) {
+            // Character information database with shorter, more concise descriptions
+            const characterInfo = {
+                'Gojo': {
+                    description: 'The most powerful and entertaining sorcerer from <span class="highlight">Jujutsu Kaisen</span>. Chat with him to experience his playful charm and witty comebacks - just don\'t expect him to take anything too seriously!',
+                    traits: 'Playful, charismatic, arrogant, loves to show off.'
+                },
+                'Zoro': {
+                    description: 'The legendary swordsman from <span class="highlight">One Piece</span> who might get lost in your conversation! Talk to him about swordsmanship, honor, or help him find his way back to the crew.',
+                    traits: 'Serious, determined, loyal, terrible sense of direction.'
+                },
+                'Bakugo': {
+                    description: 'The explosive hero from <span class="highlight">My Hero Academia</span> with attitude to spare! Try to keep up with his intense personality - if you dare. Just don\'t call him by his first name!',
+                    traits: 'Hot-tempered, competitive, aggressive, strategic.'
+                },
+                'Naruto': {
+                    description: 'Everyone\'s favorite ninja from <span class="highlight">Naruto</span>! Share some ramen, hear his stories, or get motivated by his never-give-up attitude. Believe it, he\'ll be excited to talk to you!',
+                    traits: 'Energetic, determined, optimistic, never gives up.'
+                },
+                'Sasuke': {
+                    description: 'The mysterious avenger from <span class="highlight">Naruto</span>. Try to break through his cold exterior - if you\'re skilled enough to earn his respect, you might see a different side of him.',
+                    traits: 'Cold, intelligent, prideful, driven by revenge.'
+                },
+                'Mitsuri': {
+                    description: 'The charming Love Hashira from <span class="highlight">Demon Slayer</span>. Share a moment with her sweet personality, but don\'t be fooled - she\'s one of the strongest demon slayers you\'ll ever meet!',
+                    traits: 'Strong, gentle, caring, emotional.'
+                },
+                'Robin': {
+                    description: 'The intriguing archaeologist from <span class="highlight">One Piece</span>. Discover her mysterious charm and dark humor - just be prepared for some unexpectedly morbid observations!',
+                    traits: 'Intelligent, calm, mysterious, deeply loyal.'
+                },
+                'Shinobu': {
+                    description: 'The elegant Insect Hashira of the Demon Slayer Corps, skilled in poison techniques.',
+                    traits: 'Graceful, cunning, determined, deceptively gentle.'
+                }
+            };
+            return characterInfo[characterName] || {
+                description: 'Character information not available.',
+                traits: 'Information not available'
+            };
+        }
+
+        // Referral system functions
+        async function showReferralModal() {
+            const modal = document.getElementById('referralModal');
+            const referralLinkElement = document.getElementById('referralLink');
+            const claimButton = document.getElementById('claimRewardButton');
+            
+            if (!modal || !referralLinkElement) {
+                console.error('Modal elements not found');
+                return;
+            }
+
+            modal.style.display = 'flex';
+            
+            try {
+                // Get user data if not already loaded
+                if (!userData.uid) {
+                    await refreshUserData();
+                }
+
+                // Set referral link first
+                const baseUrl = window.location.origin;
+                const referralLink = `${baseUrl}/index.html?ref=${userData.uid}`;
+                referralLinkElement.value = referralLink;
+
+                // Get pending rewards
+                const rewardsResponse = await fetch('/api/pending-rewards');
+                const rewardsData = await rewardsResponse.json();
+                const pendingCount = rewardsData.pendingRewards ? rewardsData.pendingRewards.length : 0;
+                
+                // Update claim button
+                claimButton.textContent = `Claim Reward (${pendingCount} pending)`;
+                claimButton.disabled = pendingCount === 0;
+
+                // Update total earned messages
+                const totalEarnedMessages = document.getElementById('totalEarnedMessages');
+                if (totalEarnedMessages) {
+                    const totalMessages = rewardsData.totalEarnedMessages || 0;
+                    if (totalMessages > 0) {
+                        totalEarnedMessages.textContent = `You've earned ${totalMessages} free messages to chat with your favorite characters!`;
+                    } else {
+                        totalEarnedMessages.textContent = '';
+                    }
+                }
+
+                return pendingCount;
+            } catch (error) {
+                console.error('Error loading referral data:', error);
+                claimButton.textContent = 'Claim Reward (0 pending)';
+                claimButton.disabled = true;
+                
+                // Still try to set referral link even if rewards fail
+                if (userData.uid) {
+                    const baseUrl = window.location.origin;
+                    const referralLink = `${baseUrl}/index.html?ref=${userData.uid}`;
+                    referralLinkElement.value = referralLink;
+                }
+            }
+        }
+
+        function hideReferralModal() {
+            const modal = document.getElementById('referralModal');
+            modal.style.display = 'none';
+        }
+
+        async function copyReferralLink() {
+            const referralLink = document.getElementById('referralLink').value;
+            const copyButton = document.querySelector('.copy-button');
+            
+            try {
+                await navigator.clipboard.writeText(referralLink);
+                
+                // Create or get copy indicator
+                let indicator = copyButton.querySelector('.copy-indicator');
+                if (!indicator) {
+                    indicator = document.createElement('div');
+                    indicator.className = 'copy-indicator';
+                    indicator.textContent = 'Copied!';
+                    copyButton.appendChild(indicator);
+                }
+                
+                // Position the indicator
+                const buttonRect = copyButton.getBoundingClientRect();
+                indicator.style.top = '-25px';
+                indicator.style.left = '50%';
+                indicator.style.transform = 'translateX(-50%)';
+                
+                // Show and hide the indicator
+                indicator.classList.add('show');
+                setTimeout(() => {
+                    indicator.classList.remove('show');
+                }, 1500);
+            } catch (err) {
+                console.error('Failed to copy:', err);
+                showToast('Failed to copy link', 'error');
+            }
+        }
+
+        async function claimReferralReward() {
+            const button = document.getElementById('claimRewardButton');
+            button.classList.add('loading');
+            button.disabled = true;
+            
+            try {
+                // First get all pending rewards
+                const pendingResponse = await fetch('/api/pending-rewards');
+                const pendingData = await pendingResponse.json();
+                
+                if (!pendingData.pendingRewards || pendingData.pendingRewards.length === 0) {
+                    showToast('No pending rewards to claim', 'info');
+                    return;
+                }
+
+                // Calculate total pending before claiming
+                const totalPending = pendingData.pendingRewards.reduce((sum, reward) => sum + reward.amount, 0);
+
+                // Send request to claim all rewards
+                const response = await fetch('/api/claim-rewards', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Hide the referral modal
+                    hideReferralModal();
+                    
+                    // Show success overlay
+                    showRewardSuccess();
+                    
+                    // Update the success message with exact count
+                    const rewardSuccessMessage = document.getElementById('rewardSuccessMessage');
+                    rewardSuccessMessage.innerHTML = `You've earned <strong>${totalPending} FREE message${totalPending > 1 ? 's' : ''}</strong> to chat with your favorite characters!`;
+
+                    // Show a toast with detailed message
+                    showToast(`Successfully claimed ${totalPending} message${totalPending > 1 ? 's' : ''}!`, 'success');
+
+                    // Refresh user data
+                    await refreshUserData();
+                    await updatePendingRewardsCount();
+                } else {
+                    showToast(data.message || 'Failed to claim rewards', 'error');
+                }
+            } catch (error) {
+                console.error('Error claiming rewards:', error);
+                showToast('Failed to claim rewards', 'error');
+            } finally {
+                button.classList.remove('loading');
+                button.disabled = false;
+            }
+        }
+
+        // Function to update pending rewards count in modal
+        async function updatePendingRewardsCount() {
+            const claimButton = document.getElementById('claimRewardButton');
+            if (!claimButton) return;
+
+            try {
+                // Get pending rewards
+                const rewardsResponse = await fetch('/api/pending-rewards');
+                const rewardsData = await rewardsResponse.json();
+                const pendingCount = rewardsData.pendingRewards ? rewardsData.pendingRewards.length : 0;
+                
+                // Update claim button
+                claimButton.textContent = `Claim Reward (${pendingCount} pending)`;
+                claimButton.disabled = pendingCount === 0;
+
+                // Update total earned messages
+                const totalEarnedMessages = document.getElementById('totalEarnedMessages');
+                if (totalEarnedMessages) {
+                    const totalMessages = rewardsData.totalEarnedMessages || 0;
+                    if (totalMessages > 0) {
+                        totalEarnedMessages.textContent = `You've earned ${totalMessages} free messages to chat with your favorite characters!`;
+                    } else {
+                        totalEarnedMessages.textContent = '';
+                    }
+                }
+
+                // Get the last known count from localStorage
+                const lastKnownCount = parseInt(localStorage.getItem('lastKnownRewardsCount') || '0');
+                
+                // Show notification if there are new pending rewards
+                if (pendingCount > lastKnownCount) {
+                    showToast(`You have ${pendingCount - lastKnownCount} new pending reward${pendingCount - lastKnownCount > 1 ? 's' : ''} to claim!`, 'info', true);
+                    // Update the last known count
+                    localStorage.setItem('lastKnownRewardsCount', pendingCount.toString());
+                }
+
+                return pendingCount;
+            } catch (error) {
+                console.error('Error checking pending rewards:', error);
+                claimButton.textContent = 'Claim Reward (0 pending)';
+                claimButton.disabled = true;
+                
+                // Still try to set referral link even if rewards fail
+                if (userData.uid) {
+                    const baseUrl = window.location.origin;
+                    const referralLink = `${baseUrl}/index.html?ref=${userData.uid}`;
+                    referralLinkElement.value = referralLink;
+                }
+            }
+        }
+
+        // Function to load unlocked characters
+        function loadUnlockedCharacters() {
+            const grid = document.getElementById('charactersGrid');
+            grid.innerHTML = ''; // Clear existing content
+            
+            if (!userData.unlockedCharacters || userData.unlockedCharacters.length === 0) {
+                grid.innerHTML = `
+                    <div class="no-characters-message">
+                        <p>No characters unlocked yet.</p>
+                        <p>Unlock your first character for free to get started.</p>
+                    </div>
+                `;
+                document.getElementById('unlocked-count').textContent = '0';
+                return;
+            }
+
+            userData.unlockedCharacters.forEach(characterName => {
+                const character = characters.find(c => c.name.toLowerCase() === characterName.toLowerCase());
+                if (character) {
+                    const card = createCharacterCard(character, true);
+                    grid.appendChild(card);
+                }
+            });
+            document.getElementById('unlocked-count').textContent = userData.unlockedCharacters.length;
+        }
+
+        // Function to load locked characters
+        function loadLockedCharacters() {
+            const grid = document.getElementById('lockedCharactersGrid');
+            grid.innerHTML = ''; // Clear existing content
+
+            const lockedCharacters = characters.filter(char => 
+                !userData.unlockedCharacters.includes(char.name)
+            );
+
+            if (lockedCharacters.length === 0) {
+                grid.innerHTML = `
+                    <div class="no-characters-message">
+                        <p>No characters available to unlock.</p>
+                        <p>You've unlocked all available characters!</p>
+                        <p style="margin-top: 8px; font-size: 0.9em; opacity: 0.8;">We'll notify you when new characters are added.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            lockedCharacters.forEach(character => {
+                const card = createCharacterCard(character, false);
+                grid.appendChild(card);
+            });
+        }
+
+        // Function to check for new notifications
+        async function checkNotifications() {
+            const count = await updatePendingRewardsCount();
+            if (count > 0) {
+                showToast(`You have ${count} pending reward${count > 1 ? 's' : ''}! Click to claim.`, 'info', true);
+            }
+        }
+
+        // Check for notifications when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            checkNotifications();
+            initializeClaimTimer();
+            updateStats();
+        });
+
+        // Check for notifications periodically
+        // Removed auto-refresh functionality
+
+        // Claim functionality
+        let claimCheckInterval = null;
+
+        function initializeClaimTimer() {
+            const claimButton = document.getElementById('claimButton');
+            const claimTimer = document.getElementById('claimTimer');
+
+            async function checkClaimStatus() {
+                try {
+                    const response = await fetch('/api/check-claim-status');
+                    if (!response.ok) throw new Error('Failed to check claim status');
+                    
+                    const data = await response.json();
+                    
+                    if (data.canClaim) {
+                        claimButton.disabled = false;
+                        claimTimer.textContent = 'Messages ready to claim!';
+                        claimTimer.style.color = '#8b5cf6';
+                    } else {
+                        const minutes = Math.floor(data.remainingTime / 60000);
+                        const seconds = Math.floor((data.remainingTime % 60000) / 1000);
+                        claimTimer.textContent = `Next claim available in: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+                        claimButton.disabled = true;
+                    }
+                } catch (error) {
+                    console.error('Error checking claim status:', error);
+                }
+            }
+
+            claimButton.addEventListener('click', async () => {
+                try {
+                    const response = await fetch('/api/claim-daily-messages', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        showToast('Successfully claimed 10 daily messages!', 'success');
+                        userData.messagesTotal = result.messagesTotal;
+                        updateStats();
+                        claimButton.disabled = true;
+                        checkClaimStatus(); // Immediately check status
+                    } else {
+                        showToast(result.message || 'Failed to claim daily messages. Please try again.', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error claiming daily messages:', error);
+                    showToast('An error occurred while claiming messages.', 'error');
+                }
+            });
+
+            // Check claim status every second
+            if (claimCheckInterval) {
+                clearInterval(claimCheckInterval);
+            }
+            claimCheckInterval = setInterval(checkClaimStatus, 1000);
+            
+            // Initial check
+            checkClaimStatus();
+        }
+
+        async function sendMessage() {
+            const messageInput = document.getElementById('message-input');
+            const message = messageInput.value.trim();
+            const characterName = document.getElementById('character-name').textContent;
+            
+            if (!message) return;
+
+            try {
+                // Save to call history
+                await fetch('/api/call-history', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        character: characterName,
+                        message: message
+                    })
+                });
+
+                // Rest of your message sending code...
+                messageInput.value = '';
+                
+            } catch (error) {
+                console.error('Error sending message:', error);
+                showToast('Failed to send message. Please try again.', 'error');
+            }
+        }
+
+        function showUnlockAnimation(characterName) {
+            const overlay = document.querySelector('.character-unlock-overlay');
+            const content = overlay.querySelector('.character-unlock-content');
+            const characterNameSpan = overlay.querySelector('.unlocked-character-name');
+            
+            // Set the character name
+            characterNameSpan.textContent = characterName;
+            
+            // Show the overlay
+            overlay.classList.add('show');
+            
+            // Trigger confetti
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#FFD700', '#FFA500', '#FF69B4', '#4CAF50'],
+                zIndex: 10000
+            });
+            
+            // Second burst after a small delay
+            setTimeout(() => {
+                confetti({
+                    particleCount: 50,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0, y: 0.6 },
+                    colors: ['#FFD700', '#FFA500', '#FF69B4', '#4CAF50'],
+                    zIndex: 10000
+                });
+                confetti({
+                    particleCount: 50,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1, y: 0.6 },
+                    colors: ['#FFD700', '#FFA500', '#FF69B4', '#4CAF50'],
+                    zIndex: 10000
+                });
+            }, 200);
+
+            // Animate content
+            setTimeout(() => {
+                content.style.transform = 'scale(1)';
+            }, 100);
+
+            // Update unlock success message
+            const unlockMessage = document.querySelector('.character-unlock-content h2');
+            if (unlockMessage) {
+                unlockMessage.textContent = `${characterName} Unlocked!`;
+            }
+
+            // Refresh user data
+            refreshUserData();
+        }
+    </script>
+    <script>
+        function closeUnlockOverlay() {
+            const overlay = document.querySelector('.character-unlock-overlay');
+            overlay.classList.remove('show');
+        }
+    </script>
+    <script>
+        function showRewardSuccess() {
+            const overlay = document.querySelector('.reward-success-overlay');
+            overlay.classList.add('show');
+        }
+
+        function closeRewardSuccess() {
+            const overlay = document.querySelector('.reward-success-overlay');
+            overlay.classList.remove('show');
+        }
+    </script>
+    <script>
+        // Format date function
+        const formatDate = (date) => {
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const d = new Date(date);
+            const month = months[d.getMonth()];
+            const day = d.getDate();
+            let hours = d.getHours();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12; // Convert 0 to 12
+            const minutes = d.getMinutes().toString().padStart(2, '0');
+            return `${month} ${day}, ${hours}:${minutes} ${ampm}`;
+        };
+    </script>
+    <script>
+        // Add click outside listener for history items
+        document.addEventListener('click', function(event) {
+            // If we clicked inside a history item, ignore
+            if (event.target.closest('.history-item')) return;
+            
+            // Close all open conversations
+            document.querySelectorAll('.history-messages-container.show').forEach(container => {
+                if (container !== messagesContainer) {
+                    container.classList.remove('show');
+                    const button = container.previousElementSibling;
+                    button.classList.remove('active');
+                    button.innerHTML = '<i class="fas fa-chevron-down"></i>See chat';
+                }
+            });
+        });
+    </script>
+    <script>
+        // Add functions for delete functionality
+        function toggleDeleteMode() {
+            const historyList = document.querySelector('.history-list');
+            const deleteControls = historyList.querySelector('.delete-controls');
+            const historyItems = historyList.querySelectorAll('.history-item');
+            const deleteButton = historyList.querySelector('.delete-history-btn');
+
+            // Toggle delete mode
+            historyItems.forEach(item => {
+                item.classList.toggle('delete-mode');
+                const checkbox = item.querySelector('.history-checkbox');
+                if (checkbox) checkbox.checked = false;
+            });
+
+            // Toggle controls visibility
+            deleteControls.classList.toggle('show');
+            deleteButton.style.display = deleteControls.classList.contains('show') ? 'none' : 'flex';
+            
+            // Reset select all button text
+            const selectAllBtn = document.getElementById('select-all-btn');
+            if (selectAllBtn) {
+                selectAllBtn.textContent = 'Select All';
+            }
+        }
+
+        async function deleteSelectedHistory() {
+            const historyList = document.querySelector('.history-list');
+            const selectedItems = historyList.querySelectorAll('.history-item input[type="checkbox"]:checked');
+            const selectedTimestamps = Array.from(selectedItems).map(checkbox => {
+                const historyItem = checkbox.closest('.history-item');
+                return historyItem.dataset.timestamp;
+            });
+
+            if (selectedTimestamps.length === 0) {
+                showToast('Please select items to delete', 'error');
+                return;
+            }
+
+            try {
+                // Make API call to delete items
+                const response = await fetch('/api/call-history/delete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        timestamps: selectedTimestamps
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to delete history items');
+                }
+
+                // Remove selected items from the UI
+                selectedItems.forEach(checkbox => {
+                    const historyItem = checkbox.closest('.history-item');
+                    if (historyItem) {
+                        historyItem.remove();
+                    }
+                });
+
+                showToast('Selected items deleted successfully', 'success');
+            } catch (error) {
+                console.error('Error deleting history:', error);
+                showToast('Failed to delete history items', 'error');
+                return;
+            }
+
+            // Exit delete mode
+            toggleDeleteMode();
+            
+            // If no items left, show empty state
+            const remainingItems = historyList.querySelectorAll('.history-item');
+            if (remainingItems.length === 0) {
+                const emptyMessage = document.createElement('div');
+                emptyMessage.className = 'empty-history';
+                emptyMessage.innerHTML = `
+                    <div style="text-align: center; padding: 32px 20px; color: rgba(255, 255, 255, 0.7);">
+                        <i class="fas fa-history" style="font-size: 2rem; margin-bottom: 16px;"></i>
+                        <p style="font-size: 1.1rem; margin-bottom: 8px;">No call history yet</p>
+                        <p style="font-size: 0.9rem;">Start a conversation with your favorite characters!</p>
+                    </div>
+                `;
+                historyList.appendChild(emptyMessage);
+                
+                // Hide delete button since there are no items
+                const deleteButton = historyList.querySelector('.delete-history-btn');
+                if (deleteButton) {
+                    deleteButton.style.display = 'none';
+                }
+            }
+        }
+
+        // Add event listeners for delete functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            const historyList = document.querySelector('.history-list');
+            
+            // Delete button click
+            historyList.addEventListener('click', (event) => {
+                if (event.target.closest('.delete-history-btn')) {
+                    toggleDeleteMode();
+                }
+                
+                // Cancel button click
+                if (event.target.classList.contains('delete-controls-btn') && 
+                    event.target.classList.contains('cancel')) {
+                    toggleDeleteMode();
+                }
+                
+                // Confirm delete button click
+                if (event.target.classList.contains('delete-controls-btn') && 
+                    event.target.classList.contains('confirm')) {
+                    deleteSelectedHistory();
+                }
+
+                // Select All button click
+                if (event.target.id === 'select-all-btn') {
+                    const checkboxes = historyList.querySelectorAll('.history-checkbox');
+                    const isAllSelected = Array.from(checkboxes).every(checkbox => checkbox.checked);
+                    
+                    checkboxes.forEach(checkbox => {
+                        checkbox.checked = !isAllSelected;
+                    });
+                    
+                    event.target.textContent = isAllSelected ? 'Select All' : 'Deselect All';
+                }
+            });
+        });
+    </script>
+    <script>
+        // Initialize WebSocket connection
+        const ws = new WebSocket(window.location.origin.replace(/^http/, 'ws'));
+        
+        ws.onmessage = function(event) {
+            const message = JSON.parse(event.data);
+            
+            if (message.type === 'subscription_updated') {
+                // Update user data with new subscription info
+                userData = {
+                    ...userData,
+                    currentPlan: message.data.plan,
+                    diamonds: message.data.benefits.diamonds,
+                    messagesLeft: message.data.benefits.messagesLeft,
+                    unlockedCharacters: message.data.benefits.unlockedCharacters
+                };
+                
+                // Update UI
+                updateStats();
+                
+                // Update last known rewards count
+                const lastKnownCount = parseInt(localStorage.getItem('lastKnownRewardsCount') || '0');
+                
+                // Load characters
+                await Promise.all([
+                    loadUnlockedCharacters(),
+                    loadLockedCharacters()
+                ]);
+                
+                // Get character info for the animation
+                const character = getCharacterInfo(characterName);
+                
+                // Show unlock animation with confetti
+                showUnlockAnimation(characterName);
+            } else if (message.type === 'refresh_required') {
+                // Refresh user data when requested
+                refreshUserData();
+            }
+        };
+    </script>
+</body>
+</html>
