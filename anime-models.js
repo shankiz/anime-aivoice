@@ -12,7 +12,6 @@ const {
     getFullUserData,
     addCallToHistory
 } = require('./user-functions');
-const { MongoClient, ServerApiVersion } = require('mongodb');
 
 // Get API keys from environment variables
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -100,6 +99,7 @@ const CHARACTER_CONTEXTS = {
     You maintain a perpetual smile and speak in a sweet, polite manner, but often with underlying threats or dark implications. You are highly skilled in using poison and developed unique techniques to compensate for your smaller stature. Despite your sometimes threatening demeanor, you care deeply about your fellow demon slayers, particularly your apprentice Kanao. When discussing combat or demons, maintain your characteristic sweet tone while expressing your determination to eliminate them. Your responses should reflect your complex personality - simultaneously sweet and deadly.`
 };
 
+
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
@@ -108,86 +108,82 @@ const modelCache = {};
 
 let isProcessing = false;
 let isSessionActive = false;
-let client = null;
-let db = null;
 
-// Initialize MongoDB connection
-async function connectToMongoDB() {
+// Modify the folder constants
+const MODELS_DIR = path.join(__dirname, 'ai anime models');
+const CHARACTER_DIRS = {
+    gojo: path.join(MODELS_DIR, 'gojo'),
+    bakugo: path.join(MODELS_DIR, 'bakugo'),
+    naruto: path.join(MODELS_DIR, 'naruto'),
+    zoro: path.join(MODELS_DIR, 'zoro'),
+    sasuke: path.join(MODELS_DIR, 'sasuke'),
+    mitsuri: path.join(MODELS_DIR, 'mitsuri'),
+    robin: path.join(MODELS_DIR, 'robin'),
+    shinobu: path.join(MODELS_DIR, 'shinobu')
+};
+
+// Create directories if they don't exist
+if (!fs.existsSync(MODELS_DIR)) {
     try {
-        const uri = "mongodb+srv://animevoice:5bijez5BGK8kmsUe@cluster0.aquqj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
-        client = new MongoClient(uri, {
-            serverApi: {
-                version: ServerApiVersion.v1,
-                strict: true,
-                deprecationErrors: true,
-            }
-        });
-        await client.connect();
-        db = client.db('anime-voice');
-        console.log('Connected to MongoDB');
+        fs.mkdirSync(MODELS_DIR, { recursive: true });
     } catch (error) {
-        console.error('Failed to connect to MongoDB:', error);
-        throw error;
+        console.error('Error creating MODELS_DIR:', error);
     }
 }
 
-// Connect to MongoDB before handling any requests
-router.use(async (req, res, next) => {
-    try {
-        if (!db) {
-            await connectToMongoDB();
+// Create character directories
+Object.values(CHARACTER_DIRS).forEach(dir => {
+    if (!fs.existsSync(dir)) {
+        try {
+            fs.mkdirSync(dir, { recursive: true });
+        } catch (error) {
+            console.error(`Error creating directory ${dir}:`, error);
         }
-        next();
-    } catch (error) {
-        console.error('MongoDB connection error:', error);
-        res.status(500).json({ error: 'Database connection error' });
     }
 });
 
+let currentSessionId = null;
+let currentCharacter = null;
+let currentConversationFile = null;
+
 // Function to start a new conversation session
-async function initializeNewSession(character, userId) {
-    if (!db) {
-        await connectToMongoDB();
-    }
-    
-    let currentSessionId = Date.now().toString();
-    let currentCharacter = character;
-    
-    await db.collection('conversations').insertOne({
-        sessionId: currentSessionId,
-        character: character,
-        userId: userId,
-        messages: [],
-        createdAt: new Date()
-    });
-    
+function initializeNewSession(character) {
+    currentSessionId = Date.now().toString();
+    currentCharacter = character;
+    currentConversationFile = path.join(CHARACTER_DIRS[character], `conversation_${currentSessionId}.json`);
+    fs.writeFileSync(currentConversationFile, JSON.stringify([], null, 2));
     return currentSessionId;
-}
-
-// Function to update conversation from call history
-async function updateConversationFromHistory(userId, character) {
-    if (!db) {
-        await connectToMongoDB();
-    }
-
-    const userData = await getFullUserData(userId);
-    if (!userData || !userData.callHistory) return;
-
-    const characterCalls = userData.callHistory
-        .filter(call => call.character === character)
-        .sort((a, b) => b.timestamp - a.timestamp);
-
-    if (characterCalls.length > 0 && currentSessionId) {
-        await db.collection('conversations').updateOne(
-            { sessionId: currentSessionId },
-            { $set: { messages: characterCalls } }
-        );
-    }
 }
 
 // Function to clean text of newlines and extra spaces
 function cleanText(text) {
     return text.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+// Function to update conversation file from call history
+async function updateConversationFileFromHistory(userId, character) {
+    if (currentConversationFile && fs.existsSync(currentConversationFile)) {
+        try {
+            const userData = await getFullUserData(userId);
+            if (!userData || !userData.callHistory) return;
+
+            // Get the most recent conversation with this character
+            const characterCalls = userData.callHistory
+                .filter(call => call.character === character)
+                .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            if (characterCalls.length > 0) {
+                const latestCall = characterCalls[0];
+                const conversationData = latestCall.messages.map(msg => ({
+                    user: msg.userMessage,
+                    response: msg.characterResponse
+                }));
+                fs.writeFileSync(currentConversationFile, JSON.stringify(conversationData, null, 2));
+            }
+        } catch (error) {
+            console.error('Error updating conversation file:', error);
+        }
+    }
 }
 
 // Process chat with AI and generate response
@@ -329,6 +325,9 @@ router.post('/:character/chat', async (req, res) => {
 
         // Don't check minutes for stop session requests
         if (stopSession) {
+            currentSessionId = null;
+            currentCharacter = null;
+            currentConversationFile = null;
             isSessionActive = false;
             isProcessing = false;
             return res.json({ stopped: true });
@@ -341,11 +340,18 @@ router.post('/:character/chat', async (req, res) => {
         // 2. No current session
         // 3. Different character
         // 4. Previous session was stopped
-        if (newSession) {
+        if (newSession || !currentSessionId || character !== currentCharacter || !isSessionActive) {
             // Clean up previous session if it exists
-            await db.collection('conversations').deleteOne({ sessionId: currentSessionId });
+            if (currentConversationFile && fs.existsSync(currentConversationFile)) {
+                try {
+                    fs.unlinkSync(currentConversationFile);
+                } catch (error) {
+                    console.error('Error deleting old conversation file:', error);
+                }
+            }
 
-            currentSessionId = await initializeNewSession(character, req.session.user.id);
+            currentSessionId = initializeNewSession(character);
+            currentCharacter = character;
             isSessionActive = true;
 
             if (initialCall) {
@@ -396,11 +402,17 @@ IMPORTANT: Generate a brief greeting (max 10 words). Respond DIRECTLY as the cha
                         throw new Error('No audio data received from TTS service');
                     }
 
-                    // Initialize conversation in MongoDB with greeting only
-                    await db.collection('conversations').updateOne(
-                        { sessionId: currentSessionId },
-                        { $push: { messages: { response: greeting } } }
-                    );
+                    // Initialize conversation file with greeting only
+                    if (currentConversationFile && fs.existsSync(currentConversationFile)) {
+                        try {
+                            const conversationData = [{
+                                response: greeting
+                            }];
+                            fs.writeFileSync(currentConversationFile, JSON.stringify(conversationData, null, 2));
+                        } catch (error) {
+                            console.error('Error updating conversation file:', error);
+                        }
+                    }
 
                     // Store only the character's greeting in MongoDB, without any user message
                     await addCallToHistory(
@@ -441,11 +453,19 @@ IMPORTANT: Generate a brief greeting (max 10 words). Respond DIRECTLY as the cha
                 // Process chat and generate response
                 const response = await processChat(message, character);
 
-                // Store this exact conversation in MongoDB
-                await db.collection('conversations').updateOne(
-                    { sessionId: currentSessionId },
-                    { $push: { messages: { user: `<strong>You</strong>: ${message}`, response: `<strong>${character.charAt(0).toUpperCase() + character.slice(1)}</strong>: ${response.text}` } } }
-                );
+                // Store this exact conversation in both MongoDB and JSON file
+                if (currentConversationFile && fs.existsSync(currentConversationFile)) {
+                    try {
+                        const conversationData = JSON.parse(fs.readFileSync(currentConversationFile, 'utf8'));
+                        conversationData.push({
+                            user: `<strong>You</strong>: ${message}`,
+                            response: `<strong>${character.charAt(0).toUpperCase() + character.slice(1)}</strong>: ${response.text}`
+                        });
+                        fs.writeFileSync(currentConversationFile, JSON.stringify(conversationData, null, 2));
+                    } catch (error) {
+                        console.error('Error updating conversation file:', error);
+                    }
+                }
 
                 // Store the same conversation in MongoDB
                 await addCallToHistory(
