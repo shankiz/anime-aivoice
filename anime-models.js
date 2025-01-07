@@ -1,8 +1,6 @@
 const express = require('express');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
 const FormData = require('form-data');
 const router = express.Router();
 const {
@@ -16,9 +14,11 @@ const {
 // Global variables for session management
 let currentSessionId = null;
 let currentCharacter = null;
-let currentConversationFile = null;
 let isProcessing = false;
 let isSessionActive = false;
+
+// In-memory storage for conversations
+const conversationStore = new Map();
 
 // Get API keys from environment variables
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -106,52 +106,17 @@ const CHARACTER_CONTEXTS = {
     You maintain a perpetual smile and speak in a sweet, polite manner, but often with underlying threats or dark implications. You are highly skilled in using poison and developed unique techniques to compensate for your smaller stature. Despite your sometimes threatening demeanor, you care deeply about your fellow demon slayers, particularly your apprentice Kanao. When discussing combat or demons, maintain your characteristic sweet tone while expressing your determination to eliminate them. Your responses should reflect your complex personality - simultaneously sweet and deadly.`
 };
 
-
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 // Cache for model instances
 const modelCache = {};
 
-// Modify the folder constants
-const MODELS_DIR = path.join(__dirname, 'ai anime models');
-const CHARACTER_DIRS = {
-    gojo: path.join(MODELS_DIR, 'gojo'),
-    bakugo: path.join(MODELS_DIR, 'bakugo'),
-    naruto: path.join(MODELS_DIR, 'naruto'),
-    zoro: path.join(MODELS_DIR, 'zoro'),
-    sasuke: path.join(MODELS_DIR, 'sasuke'),
-    mitsuri: path.join(MODELS_DIR, 'mitsuri'),
-    robin: path.join(MODELS_DIR, 'robin'),
-    shinobu: path.join(MODELS_DIR, 'shinobu')
-};
-
-// Create directories if they don't exist
-if (!fs.existsSync(MODELS_DIR)) {
-    try {
-        fs.mkdirSync(MODELS_DIR, { recursive: true });
-    } catch (error) {
-        console.error('Error creating MODELS_DIR:', error);
-    }
-}
-
-// Create character directories
-Object.values(CHARACTER_DIRS).forEach(dir => {
-    if (!fs.existsSync(dir)) {
-        try {
-            fs.mkdirSync(dir, { recursive: true });
-        } catch (error) {
-            console.error(`Error creating directory ${dir}:`, error);
-        }
-    }
-});
-
 // Function to start a new conversation session
 function initializeNewSession(character) {
     currentSessionId = Date.now().toString();
     currentCharacter = character;
-    currentConversationFile = path.join(CHARACTER_DIRS[character], `conversation_${currentSessionId}.json`);
-    fs.writeFileSync(currentConversationFile, JSON.stringify([], null, 2));
+    conversationStore.set(currentSessionId, []);
     return currentSessionId;
 }
 
@@ -162,7 +127,7 @@ function cleanText(text) {
 
 // Function to update conversation file from call history
 async function updateConversationFileFromHistory(userId, character) {
-    if (currentConversationFile && fs.existsSync(currentConversationFile)) {
+    if (conversationStore.has(currentSessionId)) {
         try {
             const userData = await getFullUserData(userId);
             if (!userData || !userData.callHistory) return;
@@ -178,7 +143,7 @@ async function updateConversationFileFromHistory(userId, character) {
                     user: msg.userMessage,
                     response: msg.characterResponse
                 }));
-                fs.writeFileSync(currentConversationFile, JSON.stringify(conversationData, null, 2));
+                conversationStore.set(currentSessionId, conversationData);
             }
         } catch (error) {
             console.error('Error updating conversation file:', error);
@@ -305,146 +270,45 @@ async function generateAudio(text, character) {
 }
 
 // Chat endpoint handler for each character
-router.post('/:character/chat', async (req, res) => {
-    const character = req.params.character;
-    if (!MODEL_IDS[character]) {
-        return res.status(404).json({ error: 'Character not found' });
-    }
-
-    if (isProcessing) {
-        return res.status(429).json({ error: 'Still processing previous request' });
-    }
-
+router.post('/chat/:character', async (req, res) => {
     try {
-        // Check for authentication
-        if (!req.session?.user?.id) {
-            return res.status(401).json({ error: 'Please log in to continue' });
+        const { message, userId, newSession, stopSession } = req.body;
+        const character = req.params.character.toLowerCase();
+
+        // Check if character exists
+        if (!MODEL_IDS[character]) {
+            return res.status(400).json({ error: 'Invalid character' });
         }
 
-        const { message, newSession, stopSession, initialCall } = req.body;
-
-        // Don't check minutes for stop session requests
+        // Handle stop session request
         if (stopSession) {
             currentSessionId = null;
             currentCharacter = null;
-            currentConversationFile = null;
             isSessionActive = false;
             isProcessing = false;
+            conversationStore.clear(); // Clear all conversations
             return res.json({ stopped: true });
+        }
+
+        // Prevent concurrent processing
+        if (isProcessing) {
+            return res.status(429).json({ error: 'A request is already being processed' });
         }
 
         isProcessing = true;
 
-        // Always treat as new session if:
-        // 1. Explicitly requested as new session
-        // 2. No current session
-        // 3. Different character
-        // 4. Previous session was stopped
+        // Initialize new session if needed
         if (newSession || !currentSessionId || character !== currentCharacter || !isSessionActive) {
-            // Clean up previous session if it exists
-            if (currentConversationFile && fs.existsSync(currentConversationFile)) {
-                try {
-                    fs.unlinkSync(currentConversationFile);
-                } catch (error) {
-                    console.error('Error deleting old conversation file:', error);
-                }
-            }
-
             currentSessionId = initializeNewSession(character);
             currentCharacter = character;
             isSessionActive = true;
-
-            if (initialCall) {
-                try {
-                    // Skip user validation for initial greeting
-                    if (!modelCache[character]) {
-                        modelCache[character] = genAI.getGenerativeModel({ 
-                            model: "gemini-pro",
-                            generationConfig: {
-                                maxOutputTokens: 50,
-                                temperature: 0.7
-                            },
-                            safetySettings: [
-                                { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-                                { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-                                { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-                                { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
-                            ]
-                        });
-                    }
-
-                    const model = modelCache[character];
-                    const prompt = `${CHARACTER_CONTEXTS[character]}
-IMPORTANT: Generate a brief greeting (max 10 words). Respond DIRECTLY as the character.`;
-
-                    const result = await model.generateContent(prompt);
-                    const greeting = `<strong>${character.charAt(0).toUpperCase() + character.slice(1)}:</strong> ${result.response.text()}`;
-
-                    // Generate audio for the greeting
-                    const ttsResponse = await axios({
-                        method: 'POST',
-                        url: 'https://api.fish.audio/v1/tts',
-                        headers: {
-                            'Authorization': `Bearer ${FISH_AUDIO_API_KEY}`,
-                            'Content-Type': 'application/json'
-                        },
-                        data: {
-                            text: result.response.text(),
-                            reference_id: MODEL_IDS[character],
-                            format: "mp3",
-                            mp3_bitrate: 128
-                        },
-                        responseType: 'arraybuffer',
-                        timeout: 30000
-                    });
-
-                    if (!ttsResponse.data) {
-                        throw new Error('No audio data received from TTS service');
-                    }
-
-                    // Initialize conversation file with greeting only
-                    if (currentConversationFile && fs.existsSync(currentConversationFile)) {
-                        try {
-                            const conversationData = [{
-                                response: greeting
-                            }];
-                            fs.writeFileSync(currentConversationFile, JSON.stringify(conversationData, null, 2));
-                        } catch (error) {
-                            console.error('Error updating conversation file:', error);
-                        }
-                    }
-
-                    // Store only the character's greeting in MongoDB, without any user message
-                    await addCallToHistory(
-                        req.session.user.id,
-                        character,
-                        1,
-                        null,  // No user message for greeting
-                        greeting,  // Store the formatted greeting
-                        currentSessionId
-                    );
-
-                    return res.json({
-                        audio: Buffer.from(ttsResponse.data).toString('base64'),
-                        sessionId: currentSessionId,
-                        message: greeting
-                    });
-
-                } catch (error) {
-                    console.error('Error in initial call:', error);
-                    return res.status(500).json({ 
-                        error: 'Failed to generate initial greeting',
-                        details: error.message 
-                    });
-                }
-            }
         }
 
         // Only proceed with actual message processing if there's a message
-        if (message && !initialCall && !newSession) {
+        if (message) {
             try {
                 // Process the chat request first
-                const chatResult = await processChatRequest(req.session.user.id, message, character);
+                const chatResult = await processChatRequest(userId, message, character);
 
                 if (chatResult.error) {
                     return res.status(400).json({ error: chatResult.error });
@@ -453,23 +317,19 @@ IMPORTANT: Generate a brief greeting (max 10 words). Respond DIRECTLY as the cha
                 // Process chat and generate response
                 const response = await processChat(message, character);
 
-                // Store this exact conversation in both MongoDB and JSON file
-                if (currentConversationFile && fs.existsSync(currentConversationFile)) {
-                    try {
-                        const conversationData = JSON.parse(fs.readFileSync(currentConversationFile, 'utf8'));
-                        conversationData.push({
-                            user: `<strong>You</strong>: ${message}`,
-                            response: `<strong>${character.charAt(0).toUpperCase() + character.slice(1)}</strong>: ${response.text}`
-                        });
-                        fs.writeFileSync(currentConversationFile, JSON.stringify(conversationData, null, 2));
-                    } catch (error) {
-                        console.error('Error updating conversation file:', error);
-                    }
+                // Store this exact conversation in memory
+                if (conversationStore.has(currentSessionId)) {
+                    const conversationData = conversationStore.get(currentSessionId);
+                    conversationData.push({
+                        user: `<strong>You</strong>: ${message}`,
+                        response: `<strong>${character.charAt(0).toUpperCase() + character.slice(1)}</strong>: ${response.text}`
+                    });
+                    conversationStore.set(currentSessionId, conversationData);
                 }
 
                 // Store the same conversation in MongoDB
                 await addCallToHistory(
-                    req.session.user.id, 
+                    userId, 
                     character, 
                     1,  // Always use 1 minute for now
                     `<strong>You</strong>: ${message}`, 
