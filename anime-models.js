@@ -12,7 +12,7 @@ const {
     getFullUserData,
     addCallToHistory
 } = require('./user-functions');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient } = require('mongodb');
 
 // Get API keys from environment variables
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -108,55 +108,22 @@ const modelCache = {};
 
 let isProcessing = false;
 let isSessionActive = false;
-let client = null;
-let db = null;
 
-// Initialize MongoDB connection
-async function connectToMongoDB() {
-    try {
-        const uri = "mongodb+srv://animevoice:5bijez5BGK8kmsUe@cluster0.aquqj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
-        client = new MongoClient(uri, {
-            serverApi: {
-                version: ServerApiVersion.v1,
-                strict: true,
-                deprecationErrors: true,
-            }
-        });
-        await client.connect();
-        db = client.db('anime-voice');
-        console.log('Connected to MongoDB');
-    } catch (error) {
-        console.error('Failed to connect to MongoDB:', error);
-        throw error;
-    }
-}
-
-// Connect to MongoDB before handling any requests
-router.use(async (req, res, next) => {
-    try {
-        if (!db) {
-            await connectToMongoDB();
-        }
-        next();
-    } catch (error) {
-        console.error('MongoDB connection error:', error);
-        res.status(500).json({ error: 'Database connection error' });
-    }
-});
+// MongoDB connection
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
+const dbName = 'anime-models';
+const client = new MongoClient(MONGODB_URI);
+const db = client.db(dbName);
 
 // Function to start a new conversation session
-async function initializeNewSession(character, userId) {
-    if (!db) {
-        await connectToMongoDB();
-    }
+async function initializeNewSession(character) {
+    currentSessionId = Date.now().toString();
+    currentCharacter = character;
     
-    let currentSessionId = Date.now().toString();
-    let currentCharacter = character;
-    
+    // Store conversation in MongoDB
     await db.collection('conversations').insertOne({
         sessionId: currentSessionId,
         character: character,
-        userId: userId,
         messages: [],
         createdAt: new Date()
     });
@@ -165,29 +132,66 @@ async function initializeNewSession(character, userId) {
 }
 
 // Function to update conversation from call history
-async function updateConversationFromHistory(userId, character) {
-    if (!db) {
-        await connectToMongoDB();
-    }
+async function updateConversationFileFromHistory(userId, character) {
+    try {
+        const userData = await getFullUserData(userId);
+        if (!userData || !userData.callHistory) return;
 
-    const userData = await getFullUserData(userId);
-    if (!userData || !userData.callHistory) return;
+        // Get the most recent conversation with this character
+        const characterCalls = userData.callHistory
+            .filter(call => call.character === character)
+            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-    const characterCalls = userData.callHistory
-        .filter(call => call.character === character)
-        .sort((a, b) => b.timestamp - a.timestamp);
-
-    if (characterCalls.length > 0 && currentSessionId) {
-        await db.collection('conversations').updateOne(
-            { sessionId: currentSessionId },
-            { $set: { messages: characterCalls } }
-        );
+        if (characterCalls.length > 0 && currentSessionId) {
+            const latestCall = characterCalls[0];
+            const conversationData = latestCall.messages.map(msg => ({
+                user: msg.userMessage,
+                response: msg.characterResponse
+            }));
+            
+            // Store in MongoDB
+            await db.collection('conversations').updateOne(
+                { sessionId: currentSessionId },
+                { $set: { messages: conversationData } }
+            );
+        }
+    } catch (error) {
+        console.error('Error updating conversation history:', error);
     }
 }
 
 // Function to clean text of newlines and extra spaces
 function cleanText(text) {
     return text.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+// Function to update conversation file from call history
+async function updateConversationFileFromHistory(userId, character) {
+    try {
+        const userData = await getFullUserData(userId);
+        if (!userData || !userData.callHistory) return;
+
+        // Get the most recent conversation with this character
+        const characterCalls = userData.callHistory
+            .filter(call => call.character === character)
+            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        if (characterCalls.length > 0 && currentSessionId) {
+            const latestCall = characterCalls[0];
+            const conversationData = latestCall.messages.map(msg => ({
+                user: msg.userMessage,
+                response: msg.characterResponse
+            }));
+            
+            // Store in MongoDB
+            await db.collection('conversations').updateOne(
+                { sessionId: currentSessionId },
+                { $set: { messages: conversationData } }
+            );
+        }
+    } catch (error) {
+        console.error('Error updating conversation history:', error);
+    }
 }
 
 // Process chat with AI and generate response
@@ -329,6 +333,8 @@ router.post('/:character/chat', async (req, res) => {
 
         // Don't check minutes for stop session requests
         if (stopSession) {
+            currentSessionId = null;
+            currentCharacter = null;
             isSessionActive = false;
             isProcessing = false;
             return res.json({ stopped: true });
@@ -341,11 +347,14 @@ router.post('/:character/chat', async (req, res) => {
         // 2. No current session
         // 3. Different character
         // 4. Previous session was stopped
-        if (newSession) {
+        if (newSession || !currentSessionId || character !== currentCharacter || !isSessionActive) {
             // Clean up previous session if it exists
-            await db.collection('conversations').deleteOne({ sessionId: currentSessionId });
+            if (currentSessionId) {
+                await db.collection('conversations').deleteOne({ sessionId: currentSessionId });
+            }
 
-            currentSessionId = await initializeNewSession(character, req.session.user.id);
+            currentSessionId = await initializeNewSession(character);
+            currentCharacter = character;
             isSessionActive = true;
 
             if (initialCall) {
